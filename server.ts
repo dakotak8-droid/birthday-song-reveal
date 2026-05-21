@@ -23,12 +23,24 @@ function getChartDates(birthDateStr: string) {
   
   const userBirthdayFormatted = `${months[birthDate.getMonth()]} ${birthDate.getDate()}, ${birthDate.getFullYear()}`;
   
-  // Find closest Saturday on or before birthDate (Billboard Hot 100 charts historically dated on Saturdays)
+  // 1. Find Saturday on or before
   const dayOfWeek = birthDate.getDay(); // 0 is Sunday, 6 is Saturday
   const daysToSubtract = (dayOfWeek + 1) % 7;
   
-  const chartDate = new Date(birthDate);
-  chartDate.setDate(birthDate.getDate() - daysToSubtract);
+  const sateOnOrBefore = new Date(birthDate);
+  sateOnOrBefore.setDate(birthDate.getDate() - daysToSubtract);
+  
+  // 2. Find Saturday after
+  const sateAfter = new Date(sateOnOrBefore);
+  sateAfter.setDate(sateOnOrBefore.getDate() + 7);
+  
+  // 3. Find the closest Saturday (preferring on or before)
+  const distBefore = Math.abs(birthDate.getTime() - sateOnOrBefore.getTime());
+  const distAfter = Math.abs(sateAfter.getTime() - birthDate.getTime());
+  
+  // Prefer the closest chart date on or before the birthday.
+  // We only use the date after if it is strictly closer.
+  const chartDate = (distAfter < distBefore) ? sateAfter : sateOnOrBefore;
   
   const matchedChartWeek = `${months[chartDate.getMonth()]} ${chartDate.getDate()}, ${chartDate.getFullYear()}`;
   
@@ -47,15 +59,15 @@ async function startServer() {
 
   // API Route to reveal nostalgic birthday insights
   app.post("/api/reveal", async (req, res) => {
+    const { birthDate } = req.body;
     try {
-      const { birthDate } = req.body;
       if (!birthDate) {
         return res.status(400).json({ error: "birthDate is required in YYYY-MM-DD format." });
       }
 
       const parts = birthDate.split("-");
       if (parts.length !== 3) {
-        return res.status(400).json({ error: "Charts were updated weekly, so we matched your birthday to the closest Billboard chart week." });
+        return res.status(400).json({ error: "Please enter a valid birth date." });
       }
 
       const y = parseInt(parts[0]);
@@ -63,7 +75,7 @@ async function startServer() {
       const d = parseInt(parts[2]);
 
       if (isNaN(y) || isNaN(m) || isNaN(d)) {
-        return res.status(400).json({ error: "Charts were updated weekly, so we matched your birthday to the closest Billboard chart week." });
+        return res.status(400).json({ error: "Please enter a valid birth date." });
       }
 
       // Check year range
@@ -74,7 +86,7 @@ async function startServer() {
       // Validate date exists
       const testDate = new Date(y, m - 1, d);
       if (testDate.getFullYear() !== y || testDate.getMonth() !== m - 1 || testDate.getDate() !== d) {
-        return res.status(400).json({ error: "Please enter a valid date." });
+        return res.status(400).json({ error: "Please enter a valid birth date." });
       }
 
       const { userBirthdayFormatted, matchedChartWeek } = getChartDates(birthDate);
@@ -161,7 +173,13 @@ async function startServer() {
       res.json(nostalgiaData);
     } catch (error: any) {
       console.error("Reveal API Error:", error);
-      res.status(500).json({ error: "Charts were updated weekly, so we matched your birthday to the closest Billboard chart week." });
+      // Fallback gracefully instead of throwing a 500 status on legitimate queries
+      try {
+        const fallback = getFallbackNostalgia(birthDate);
+        res.json(fallback);
+      } catch (fallbackError) {
+        res.status(500).json({ error: "Failed to gather nostalgic memories. Please try again." });
+      }
     }
   });
 

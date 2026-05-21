@@ -173,7 +173,7 @@ export default function App() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Charts were updated weekly, so we matched your birthday to the closest Billboard chart week.");
+        throw new Error(errorData.error || "Failed to retrieve your birthday song. Please check your connection and try again.");
       }
 
       const data: NostalgiaResult = await response.json();
@@ -186,7 +186,7 @@ export default function App() {
       }, 300);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Charts were updated weekly, so we matched your birthday to the closest Billboard chart week.");
+      setError(err.message || "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -424,12 +424,12 @@ export default function App() {
             </AnimatePresence>
           </div>
 
-          {/* RIGHT SIDE: Interactive Sample Reveal Preview Card (Visible BEFORE reveal) */}
+          {/* RIGHT SIDE: Interactive Sample Reveal Preview Card (Visible BEFORE reveal, and shows REAL result if revealed) */}
           <div className="flex flex-col justify-center items-center" id="example_column">
             <div className="w-full max-w-md relative">
               {/* Card Label tag above preview */}
               <div className="absolute -top-3 left-6 z-20 bg-[#ece7ff] text-[#08080a] text-[10px] font-mono tracking-widest uppercase px-3 py-1 rounded-sm shadow-md font-bold">
-                Example Preview
+                {result ? "Your Birthday Anthem" : "Example Preview"}
               </div>
 
               {/* The Mock tape/vinyl Glassmorphism Card */}
@@ -445,7 +445,7 @@ export default function App() {
                   <div className="vinyl-spin w-56 h-56 shadow-2xl flex items-center justify-center border-4 border-slate-950 animate-spin-slow">
                     
                     {/* Custom inner sticker */}
-                    <div className="w-16 h-16 rounded-full bg-indigo-200 flex flex-col items-center justify-center border border-indigo-400/20">
+                    <div className={`w-16 h-16 rounded-full ${result ? activeTheme.recordLabel : "bg-indigo-400"} flex flex-col items-center justify-center border border-indigo-400/20`}>
                       <div className="w-3.5 h-3.5 rounded-full bg-slate-900" />
                     </div>
 
@@ -453,27 +453,31 @@ export default function App() {
 
                   {/* Micro timestamp label on vinyl card overlay */}
                   <div className="absolute bottom-4 left-4 glass px-3 py-1 rounded-full text-[10px] uppercase tracking-tighter text-white">
-                    Previewing: Oct 25, 1995
+                    {result ? `Revealed: ${result.userBirthdayFormatted || "October 25, 1995"}` : "Previewing: Oct 25, 1995"}
                   </div>
                 </div>
 
                 {/* Standard Sample Song Meta */}
                 <div className="space-y-1">
                   <div className="flex justify-between items-start">
-                    <h2 className="text-3xl font-bold text-white tracking-tight">{sampleData.songTitle}</h2>
+                    <h2 className="text-3xl font-bold text-white tracking-tight">{result ? result.songTitle : sampleData.songTitle}</h2>
                     <span className="px-2 py-1 bg-amber-500/20 text-amber-400 rounded text-[10px] font-bold border border-amber-500/30 uppercase tracking-wider">
                       #1 in America
                     </span>
                   </div>
                   <p className="text-lg text-indigo-300 font-mono">
-                    {sampleData.artist}
+                    {result ? result.artist : sampleData.artist}
                   </p>
                 </div>
 
                 {/* Atmospheric small sentence */}
                 <div className="pt-4 border-t border-white/5">
                   <p className="font-serif italic text-slate-400 text-sm leading-relaxed">
-                    “{sampleData.sentence} This track ruled American radio while you were entering the world.”
+                    {result ? (
+                      `“${result.emotionalSentence || "The radio was playing this melody when your story began.”"}`
+                    ) : (
+                      `“${sampleData.sentence} This track ruled American radio while you were entering the world.”`
+                    )}
                   </p>
                 </div>
 
@@ -505,10 +509,15 @@ export default function App() {
               <div className="text-center space-y-3">
                 <span className="font-mono text-xs tracking-widest text-[#ece7ff] uppercase">The Verdict</span>
                 <h2 className="text-3xl md:text-5xl font-sans font-bold text-white">Your Birthday Anthem</h2>
-                <p className="text-sm text-slate-400 font-serif italic max-w-lg mx-auto">
-                  “Charts were updated weekly, so we matched your birthday to the closest Billboard chart week.”
-                </p>
-                <div className="h-0.5 w-16 bg-gradient-to-r from-pink-500 via-indigo-500 to-teal-400 mx-auto rounded-full" />
+                <div className="max-w-md mx-auto bg-indigo-500/10 border border-indigo-500/20 px-4 py-2.5 rounded-xl text-indigo-200 text-xs font-mono space-y-1 shadow-md">
+                  <p className="font-serif italic text-indigo-300">
+                     “Charts were updated weekly, so we matched your birthday to the closest Billboard chart week.”
+                  </p>
+                  <p className="text-[11px] font-medium text-white/90">
+                     Matched to Billboard chart week: <span className="text-pink-400 font-bold">{result.matchedChartWeek}</span>
+                  </p>
+                </div>
+                <div className="h-0.5 w-16 bg-gradient-to-r from-pink-500 via-indigo-500 to-teal-400 mx-auto rounded-full" style={{ marginTop: "1rem" }} />
               </div>
 
               {/* REVEAL CARD DESIGN - Custom Full Width Beautiful Container */}
