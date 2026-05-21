@@ -102,6 +102,11 @@ export default function App() {
     }
   }, []);
 
+  // Clear error when inputs change
+  useEffect(() => {
+    setError(null);
+  }, [month, day, year]);
+
   // Sync to local storage
   const saveToHistory = (newResult: NostalgiaResult, formattedDate: string) => {
     const searchId = btoa(formattedDate);

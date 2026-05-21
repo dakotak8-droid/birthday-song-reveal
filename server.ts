@@ -51,140 +51,140 @@ function getChartDates(birthDateStr: string) {
   };
 }
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
+const PORT = 3000;
 
-  app.use(express.json());
+app.use(express.json());
 
-  // API Route to reveal nostalgic birthday insights
-  app.post("/api/reveal", async (req, res) => {
-    const { birthDate } = req.body;
-    try {
-      if (!birthDate) {
-        return res.status(400).json({ error: "birthDate is required in YYYY-MM-DD format." });
-      }
-
-      const parts = birthDate.split("-");
-      if (parts.length !== 3) {
-        return res.status(400).json({ error: "Please enter a valid birth date." });
-      }
-
-      const y = parseInt(parts[0]);
-      const m = parseInt(parts[1]);
-      const d = parseInt(parts[2]);
-
-      if (isNaN(y) || isNaN(m) || isNaN(d)) {
-        return res.status(400).json({ error: "Please enter a valid birth date." });
-      }
-
-      // Check year range
-      if (y < 1920 || y > 2026) {
-        return res.status(400).json({ error: "The entered year is outside the available database range of 1920 to 2026." });
-      }
-
-      // Validate date exists
-      const testDate = new Date(y, m - 1, d);
-      if (testDate.getFullYear() !== y || testDate.getMonth() !== m - 1 || testDate.getDate() !== d) {
-        return res.status(400).json({ error: "Please enter a valid birth date." });
-      }
-
-      const { userBirthdayFormatted, matchedChartWeek } = getChartDates(birthDate);
-
-      // Check if Gemini API Key is available
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        console.warn("GEMINI_API_KEY environment variable is not set. Using rich fallback data.");
-        return res.json(getFallbackNostalgia(birthDate));
-      }
-
-      const ai = new GoogleGenAI({
-        apiKey,
-        httpOptions: {
-          headers: {
-            "User-Agent": "aistudio-build",
-          },
-        },
-      });
-
-      const prompt = `Provide the historical Billboard #1 song from the weekly chart week that contains the user's birthdate or is the closest Saturday on or before that date.
-      User Birthday: ${userBirthdayFormatted} (Date Entered: ${birthDate})
-      Closest Weekly Billboard Hot 100 Chart Saturday Date (on or before): ${matchedChartWeek}
-      Find the historic #1 song for the chart week dated exactly: ${matchedChartWeek}. Also supply nostalgic details for a person born around this date. Make everything highly factual and deeply sentimental.`;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: prompt,
-        config: {
-          systemInstruction: "You are a warm, affectionate pop-culture historian. Your goal is to tell someone the exact soundtrack of their birth. Identify the ACTUAL #1 Billboard Hot 100 song on the exact weekly chart date provided in the prompt (closest Saturday on or before birthDate). Return a beautifully framed structured JSON with nostalgic details of that point in time. For date inputs before the Hot 100 was released in August 1958, use top popular music hits of that year or decade. Ensure every single field is filled with rich, cinematic, atmospheric, and highly factual descriptions. Do not hallucinate titles or artists.",
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              songTitle: { type: Type.STRING, description: "The official title of the #1 Billboard song corresponding to the matched chart week." },
-              artist: { type: Type.STRING, description: "The artist or band name behind the song." },
-              releaseYear: { type: Type.INTEGER, description: "The year the song dominated the charts." },
-              genre: { type: Type.STRING, description: "The genre of the track, e.g. 'Motown / Soul', 'Synthpop', 'Alternative', etc." },
-              billboardRank: { type: Type.STRING, description: "Usually '#1 Billboard Hot 100' or similar historic ranking status." },
-              albumCoverDescription: { type: Type.STRING, description: "A beautiful description of what its visual artwork looks like (e.g. 'A deep gold record sleeve featuring stylish vintage portraits')." },
-              spotifyUrl: { type: Type.STRING, description: "A URL searching for this track on Spotify, e.g., 'https://open.spotify.com/search/Song%20Artist'" },
-              emotionalSentence: { type: Type.STRING, description: "A short, highly evocative, emotionally resonant sentence detailing parents listening to the static radio or how your arrival matched this melody." },
-              movieTitle: { type: Type.STRING, description: "The #1 movie in North American theater box offices that week or month." },
-              movieDescription: { type: Type.STRING, description: "A brief nostalgic snippet highlighting the cinema vibe of that time." },
-              tvShowTitle: { type: Type.STRING, description: "The top-rated TV show taking over household living rooms around that year." },
-              tvShowDescription: { type: Type.STRING, description: "A brief atmospheric snippet about what made the show popular." },
-              celebrityName: { type: Type.STRING, description: "A legendary star or creative pioneer born on the same calendar day, month, or shares the year milestone." },
-              celebrityDescription: { type: Type.STRING, description: "A short connection about your astrological or physical era ally." },
-              culturalSnapshot: { type: Type.STRING, description: "A deeply nostalgic highlight capturing the technology, style, or youth culture paradigm shift of that moment (e.g. dawn of arcade machines, cassette players, or walkman)." },
-              userBirthdayFormatted: { type: Type.STRING, description: "Please return exactly: " + userBirthdayFormatted },
-              matchedChartWeek: { type: Type.STRING, description: "Please return exactly: " + matchedChartWeek }
-            },
-            required: [
-              "songTitle",
-              "artist",
-              "releaseYear",
-              "genre",
-              "billboardRank",
-              "albumCoverDescription",
-              "spotifyUrl",
-              "emotionalSentence",
-              "movieTitle",
-              "movieDescription",
-              "tvShowTitle",
-              "tvShowDescription",
-              "celebrityName",
-              "celebrityDescription",
-              "culturalSnapshot",
-              "userBirthdayFormatted",
-              "matchedChartWeek"
-            ]
-          }
-        }
-      });
-
-      const text = response.text;
-      if (!text) {
-        throw new Error("No response text from Gemini API.");
-      }
-
-      const nostalgiaData = JSON.parse(text);
-      nostalgiaData.userBirthdayFormatted = nostalgiaData.userBirthdayFormatted || userBirthdayFormatted;
-      nostalgiaData.matchedChartWeek = nostalgiaData.matchedChartWeek || matchedChartWeek;
-      res.json(nostalgiaData);
-    } catch (error: any) {
-      console.error("Reveal API Error:", error);
-      // Fallback gracefully instead of throwing a 500 status on legitimate queries
-      try {
-        const fallback = getFallbackNostalgia(birthDate);
-        res.json(fallback);
-      } catch (fallbackError) {
-        res.status(500).json({ error: "Failed to gather nostalgic memories. Please try again." });
-      }
+// API Route to reveal nostalgic birthday insights
+app.post("/api/reveal", async (req, res) => {
+  const { birthDate } = req.body;
+  try {
+    if (!birthDate) {
+      return res.status(400).json({ error: "birthDate is required in YYYY-MM-DD format." });
     }
-  });
 
-  // Hot module reloading setup / Production serving
-  if (process.env.NODE_ENV !== "production") {
+    const parts = birthDate.split("-");
+    if (parts.length !== 3) {
+      return res.status(400).json({ error: "Please enter a valid birth date." });
+    }
+
+    const y = parseInt(parts[0]);
+    const m = parseInt(parts[1]);
+    const d = parseInt(parts[2]);
+
+    if (isNaN(y) || isNaN(m) || isNaN(d)) {
+      return res.status(400).json({ error: "Please enter a valid birth date." });
+    }
+
+    // Check year range
+    if (y < 1920 || y > 2026) {
+      return res.status(400).json({ error: "The entered year is outside the available database range of 1920 to 2026." });
+    }
+
+    // Validate date exists
+    const testDate = new Date(y, m - 1, d);
+    if (testDate.getFullYear() !== y || testDate.getMonth() !== m - 1 || testDate.getDate() !== d) {
+      return res.status(400).json({ error: "Please enter a valid birth date." });
+    }
+
+    const { userBirthdayFormatted, matchedChartWeek } = getChartDates(birthDate);
+
+    // Check if Gemini API Key is available
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.warn("GEMINI_API_KEY environment variable is not set. Using rich fallback data.");
+      return res.json(getFallbackNostalgia(birthDate));
+    }
+
+    const ai = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build",
+        },
+      },
+    });
+
+    const prompt = `Provide the historical Billboard #1 song from the weekly chart week that contains the user's birthdate or is the closest Saturday on or before that date.
+    User Birthday: ${userBirthdayFormatted} (Date Entered: ${birthDate})
+    Closest Weekly Billboard Hot 100 Chart Saturday Date (on or before): ${matchedChartWeek}
+    Find the historic #1 song for the chart week dated exactly: ${matchedChartWeek}. Also supply nostalgic details for a person born around this date. Make everything highly factual and deeply sentimental.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: "You are a warm, affectionate pop-culture historian. Your goal is to tell someone the exact soundtrack of their birth. Identify the ACTUAL #1 Billboard Hot 100 song on the exact weekly chart date provided in the prompt (closest Saturday on or before birthDate). Return a beautifully framed structured JSON with nostalgic details of that point in time. For date inputs before the Hot 100 was released in August 1958, use top popular music hits of that year or decade. Ensure every single field is filled with rich, cinematic, atmospheric, and highly factual descriptions. Do not hallucinate titles or artists.",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            songTitle: { type: Type.STRING, description: "The official title of the #1 Billboard song corresponding to the matched chart week." },
+            artist: { type: Type.STRING, description: "The artist or band name behind the song." },
+            releaseYear: { type: Type.INTEGER, description: "The year the song dominated the charts." },
+            genre: { type: Type.STRING, description: "The genre of the track, e.g. 'Motown / Soul', 'Synthpop', 'Alternative', etc." },
+            billboardRank: { type: Type.STRING, description: "Usually '#1 Billboard Hot 100' or similar historic ranking status." },
+            albumCoverDescription: { type: Type.STRING, description: "A beautiful description of what its visual artwork looks like (e.g. 'A deep gold record sleeve featuring stylish vintage portraits')." },
+            spotifyUrl: { type: Type.STRING, description: "A URL searching for this track on Spotify, e.g., 'https://open.spotify.com/search/Song%20Artist'" },
+            emotionalSentence: { type: Type.STRING, description: "A short, highly evocative, emotionally resonant sentence detailing parents listening to the static radio or how your arrival matched this melody." },
+            movieTitle: { type: Type.STRING, description: "The #1 movie in North American theater box offices that week or month." },
+            movieDescription: { type: Type.STRING, description: "A brief nostalgic snippet highlighting the cinema vibe of that time." },
+            tvShowTitle: { type: Type.STRING, description: "The top-rated TV show taking over household living rooms around that year." },
+            tvShowDescription: { type: Type.STRING, description: "A brief atmospheric snippet about what made the show popular." },
+            celebrityName: { type: Type.STRING, description: "A legendary star or creative pioneer born on the same calendar day, month, or shares the year milestone." },
+            celebrityDescription: { type: Type.STRING, description: "A short connection about your astrological or physical era ally." },
+            culturalSnapshot: { type: Type.STRING, description: "A deeply nostalgic highlight capturing the technology, style, or youth culture paradigm shift of that moment (e.g. dawn of arcade machines, cassette players, or walkman)." },
+            userBirthdayFormatted: { type: Type.STRING, description: "Please return exactly: " + userBirthdayFormatted },
+            matchedChartWeek: { type: Type.STRING, description: "Please return exactly: " + matchedChartWeek }
+          },
+          required: [
+            "songTitle",
+            "artist",
+            "releaseYear",
+            "genre",
+            "billboardRank",
+            "albumCoverDescription",
+            "spotifyUrl",
+            "emotionalSentence",
+            "movieTitle",
+            "movieDescription",
+            "tvShowTitle",
+            "tvShowDescription",
+            "celebrityName",
+            "celebrityDescription",
+            "culturalSnapshot",
+            "userBirthdayFormatted",
+            "matchedChartWeek"
+          ]
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) {
+      throw new Error("No response text from Gemini API.");
+    }
+
+    const nostalgiaData = JSON.parse(text);
+    nostalgiaData.userBirthdayFormatted = nostalgiaData.userBirthdayFormatted || userBirthdayFormatted;
+    nostalgiaData.matchedChartWeek = nostalgiaData.matchedChartWeek || matchedChartWeek;
+    res.json(nostalgiaData);
+  } catch (error: any) {
+    console.error("Reveal API Error:", error);
+    // Fallback gracefully instead of throwing a 500 status on legitimate queries
+    try {
+      const fallback = getFallbackNostalgia(birthDate);
+      res.json(fallback);
+    } catch (fallbackError) {
+      res.status(500).json({ error: "Failed to gather nostalgic memories. Please try again." });
+    }
+  }
+});
+
+// Serving setup 
+async function init() {
+  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -198,10 +198,18 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  }
 }
+
+init().catch((err) => {
+  console.error("Failed to start server:", err);
+});
+
+export default app;
 
 function getFallbackNostalgia(date: string) {
   const { userBirthdayFormatted, matchedChartWeek, chartYear } = getChartDates(date);
@@ -307,4 +315,3 @@ function getFallbackNostalgia(date: string) {
   };
 }
 
-startServer();
