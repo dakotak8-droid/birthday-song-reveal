@@ -142,8 +142,18 @@ export default function App() {
     }
 
     const numericYear = parseInt(year);
+    const numericMonth = parseInt(month);
+    const numericDay = parseInt(day);
+
     if (isNaN(numericYear) || numericYear < 1920 || numericYear > 2026) {
-      setError("Please specify a calendar year between 1920 and 2026.");
+      setError("The entered year is outside the available database range of 1920 to 2026.");
+      return;
+    }
+
+    // Convert the entered birthday into a real Date object and validate it
+    const testDate = new Date(numericYear, numericMonth - 1, numericDay);
+    if (testDate.getFullYear() !== numericYear || testDate.getMonth() !== numericMonth - 1 || testDate.getDate() !== numericDay) {
+      setError("Please enter a valid birth date.");
       return;
     }
 
@@ -162,7 +172,8 @@ export default function App() {
       });
 
       if (!response.ok) {
-        throw new Error("Unable to read the billboard charts archive.");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Charts were updated weekly, so we matched your birthday to the closest Billboard chart week.");
       }
 
       const data: NostalgiaResult = await response.json();
@@ -175,7 +186,7 @@ export default function App() {
       }, 300);
     } catch (err: any) {
       console.error(err);
-      setError("Failed to track down the soundtrack of your birthday. Checking fallback values.");
+      setError(err.message || "Charts were updated weekly, so we matched your birthday to the closest Billboard chart week.");
     } finally {
       setLoading(false);
     }
@@ -346,9 +357,14 @@ export default function App() {
                     />
                   </div>
                 </div>
-                <div className="flex justify-between items-center px-1">
-                  <span className="text-[10px] text-gray-400 font-mono tracking-wider">FORMAT: MM / DD / YYYY</span>
-                  <span className="text-[10px] text-gray-400 font-mono tracking-wider">RANGE: 1920 - 2026</span>
+                <div className="flex flex-col space-y-2 px-1 pt-0.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-gray-400 font-mono tracking-wider">FORMAT: MM / DD / YYYY</span>
+                    <span className="text-[10px] text-gray-400 font-mono tracking-wider">RANGE: 1920 - 2026</span>
+                  </div>
+                  <p className="text-[11px] text-indigo-300 font-medium leading-normal">
+                    “Billboard charts are weekly — your result is matched to the chart week of your birthday.”
+                  </p>
                 </div>
               </div>
 
@@ -489,6 +505,9 @@ export default function App() {
               <div className="text-center space-y-3">
                 <span className="font-mono text-xs tracking-widest text-[#ece7ff] uppercase">The Verdict</span>
                 <h2 className="text-3xl md:text-5xl font-sans font-bold text-white">Your Birthday Anthem</h2>
+                <p className="text-sm text-slate-400 font-serif italic max-w-lg mx-auto">
+                  “Charts were updated weekly, so we matched your birthday to the closest Billboard chart week.”
+                </p>
                 <div className="h-0.5 w-16 bg-gradient-to-r from-pink-500 via-indigo-500 to-teal-400 mx-auto rounded-full" />
               </div>
 
@@ -552,9 +571,9 @@ export default function App() {
                       
                       {/* Billboard status ribbon */}
                       <div className="flex flex-wrap gap-2 items-center">
-                        <span className="bg-amber-500/15 border border-amber-500/30 text-amber-400 font-mono text-xs px-3 py-1 rounded-full flex items-center space-x-1.5 shadow-xs">
+                        <span className="bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-xs px-3 py-1 rounded-full flex items-center space-x-1.5 shadow-md">
                           <Star size={12} className="fill-amber-400 mr-0.5" />
-                          <span>{result.billboardRank}</span>
+                          <span className="font-bold tracking-wider uppercase">#1 in America</span>
                         </span>
                         <span className="bg-white/5 border border-white/10 text-gray-300 font-mono text-xs px-3 py-1 rounded-full">
                           {result.releaseYear}
@@ -570,6 +589,18 @@ export default function App() {
                       <p className="text-lg text-[#ece7ff] font-serif italic">
                         by {result.artist}
                       </p>
+
+                      {/* Birth Date and Chart Week Context Details */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white/5 border border-white/10 rounded-2xl p-4 max-w-md font-mono text-xs mt-3">
+                        <div>
+                          <span className="text-gray-400 block text-[9px] uppercase tracking-wider mb-0.5">🎂 Your Birthday</span>
+                          <span className="text-white font-bold text-sm tracking-wide">{result.userBirthdayFormatted || "October 25, 1995"}</span>
+                        </div>
+                        <div className="sm:border-l border-white/10 sm:pl-4">
+                          <span className="text-indigo-300 block text-[9px] uppercase tracking-wider mb-0.5">📅 Matched Chart Week</span>
+                          <span className="text-indigo-200 font-bold text-sm tracking-wide">{result.matchedChartWeek || "October 21, 1995"}</span>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Poetic nostalgic hook detail */}

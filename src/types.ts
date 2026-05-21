@@ -14,6 +14,8 @@ export interface NostalgiaResult {
   celebrityName: string;
   celebrityDescription: string;
   culturalSnapshot: string;
+  userBirthdayFormatted?: string;
+  matchedChartWeek?: string;
 }
 
 export interface SavedSearch {
