@@ -1,0 +1,6 @@
+{
+  "name": "Birthday Song Reveal",
+  "description": "Discover the #1 Billboard song, popular movies, TV shows, and nostalgic cultural memories from the day you were born.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
