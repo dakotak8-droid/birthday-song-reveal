@@ -13,41 +13,38 @@ function getChartDates(birthDateStr: string) {
   const m = parseInt(parts[1]);
   const d = parseInt(parts[2]);
   
-  // Construct date in timezone safe way
-  const birthDate = new Date(y, m - 1, d);
+  // Construct date in timezone safe UTC way
+  const birthDate = new Date(Date.UTC(y, m - 1, d));
   
   const months = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
   
-  const userBirthdayFormatted = `${months[birthDate.getMonth()]} ${birthDate.getDate()}, ${birthDate.getFullYear()}`;
+  const userBirthdayFormatted = `${months[birthDate.getUTCMonth()]} ${birthDate.getUTCDate()}, ${birthDate.getUTCFullYear()}`;
   
-  // 1. Find Saturday on or before
-  const dayOfWeek = birthDate.getDay(); // 0 is Sunday, 6 is Saturday
+  // Find Saturday on or before (0 is Sunday, 6 is Saturday)
+  const dayOfWeek = birthDate.getUTCDay();
   const daysToSubtract = (dayOfWeek + 1) % 7;
   
   const sateOnOrBefore = new Date(birthDate);
-  sateOnOrBefore.setDate(birthDate.getDate() - daysToSubtract);
+  sateOnOrBefore.setUTCDate(birthDate.getUTCDate() - daysToSubtract);
   
-  // 2. Find Saturday after
-  const sateAfter = new Date(sateOnOrBefore);
-  sateAfter.setDate(sateOnOrBefore.getDate() + 7);
+  let chartDate = sateOnOrBefore;
   
-  // 3. Find the closest Saturday (preferring on or before)
-  const distBefore = Math.abs(birthDate.getTime() - sateOnOrBefore.getTime());
-  const distAfter = Math.abs(sateAfter.getTime() - birthDate.getTime());
+  // Only use a future chart date if there is no earlier chart date in the database (pre-1920)
+  if (sateOnOrBefore.getUTCFullYear() < 1920) {
+    const sateAfter = new Date(sateOnOrBefore);
+    sateAfter.setUTCDate(sateOnOrBefore.getUTCDate() + 7);
+    chartDate = sateAfter;
+  }
   
-  // Prefer the closest chart date on or before the birthday.
-  // We only use the date after if it is strictly closer.
-  const chartDate = (distAfter < distBefore) ? sateAfter : sateOnOrBefore;
-  
-  const matchedChartWeek = `${months[chartDate.getMonth()]} ${chartDate.getDate()}, ${chartDate.getFullYear()}`;
+  const matchedChartWeek = `${months[chartDate.getUTCMonth()]} ${chartDate.getUTCDate()}, ${chartDate.getUTCFullYear()}`;
   
   return {
     userBirthdayFormatted,
     matchedChartWeek,
-    chartYear: chartDate.getFullYear()
+    chartYear: chartDate.getUTCFullYear()
   };
 }
 
@@ -83,8 +80,8 @@ app.post("/api/reveal", async (req, res) => {
     }
 
     // Validate date exists
-    const testDate = new Date(y, m - 1, d);
-    if (testDate.getFullYear() !== y || testDate.getMonth() !== m - 1 || testDate.getDate() !== d) {
+    const testDate = new Date(Date.UTC(y, m - 1, d));
+    if (testDate.getUTCFullYear() !== y || testDate.getUTCMonth() !== m - 1 || testDate.getUTCDate() !== d) {
       return res.status(400).json({ error: "Please enter a valid birth date." });
     }
 
