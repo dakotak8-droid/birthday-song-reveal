@@ -368,7 +368,7 @@ export default function App() {
                     <span className="text-[10px] text-gray-400 font-mono tracking-wider">RANGE: 1920 - 2026</span>
                   </div>
                   <p className="text-[11px] text-indigo-300 font-medium leading-normal">
-                    “Billboard charts are weekly — your result is matched to the chart week of your birthday.”
+                    “Discover the nostalgic melody broadcasting across the nation the week your journey began.”
                   </p>
                 </div>
               </div>
@@ -511,18 +511,15 @@ export default function App() {
               className="border-t border-white/5 pt-16 pb-12 w-full space-y-12"
               id="reveal_result_section"
             >
-              <div className="text-center space-y-3">
+              <div className="text-center space-y-4">
                 <span className="font-mono text-xs tracking-widest text-[#ece7ff] uppercase">The Verdict</span>
-                <h2 className="text-3xl md:text-5xl font-sans font-bold text-white">Your Birthday Anthem</h2>
-                <div className="max-w-md mx-auto bg-indigo-500/10 border border-indigo-500/20 px-4 py-2.5 rounded-xl text-indigo-200 text-xs font-mono space-y-1 shadow-md">
-                  <p className="font-serif italic text-indigo-300">
-                     “Charts were updated weekly, so we matched your birthday to the closest Billboard chart week.”
-                  </p>
-                  <p className="text-[11px] font-medium text-white/90">
-                     Matched to Billboard chart week: <span className="text-pink-400 font-bold">{result.matchedChartWeek}</span>
-                  </p>
-                </div>
-                <div className="h-0.5 w-16 bg-gradient-to-r from-pink-500 via-indigo-500 to-teal-400 mx-auto rounded-full" style={{ marginTop: "1rem" }} />
+                <h2 className="text-4xl md:text-6xl font-sans font-bold text-white tracking-tight leading-tight">
+                  The #1 Hit When You Arrived
+                </h2>
+                <p className="text-sm md:text-base text-slate-400 font-mono tracking-wider">
+                  Billboard Week of <span className="text-pink-400 font-bold">{result.matchedChartWeek}</span>
+                </p>
+                <div className="h-0.5 w-16 bg-gradient-to-r from-pink-500 via-indigo-500 to-teal-400 mx-auto rounded-full" style={{ marginTop: "1.5rem" }} />
               </div>
 
               {/* REVEAL CARD DESIGN - Custom Full Width Beautiful Container */}
@@ -604,14 +601,14 @@ export default function App() {
                         by {result.artist}
                       </p>
 
-                      {/* Birth Date and Chart Week Context Details */}
+                      {/* Birth Date and Billboard Week Context Details */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white/5 border border-white/10 rounded-2xl p-4 max-w-md font-mono text-xs mt-3">
                         <div>
                           <span className="text-gray-400 block text-[9px] uppercase tracking-wider mb-0.5">🎂 Your Birthday</span>
                           <span className="text-white font-bold text-sm tracking-wide">{result.userBirthdayFormatted || "October 25, 1995"}</span>
                         </div>
                         <div className="sm:border-l border-white/10 sm:pl-4">
-                          <span className="text-indigo-300 block text-[9px] uppercase tracking-wider mb-0.5">📅 Matched Chart Week</span>
+                          <span className="text-indigo-300 block text-[9px] uppercase tracking-wider mb-0.5">📅 Billboard Week</span>
                           <span className="text-indigo-200 font-bold text-sm tracking-wide">{result.matchedChartWeek || "October 21, 1995"}</span>
                         </div>
                       </div>
