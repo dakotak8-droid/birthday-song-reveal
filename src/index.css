@@ -1,10 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=JetBrains+Mono:wght@400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,750;1,300;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,405&family=Cinzel:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Space Grotesk", "Inter", sans-serif;
-  --font-serif: "Georgia", "Playfair Display", serif;
+  --font-serif: "Cormorant Garamond", "Playfair Display", "Georgia", serif;
   --font-mono: "JetBrains Mono", monospace;
+  --font-deco: "Cinzel", "Playfair Display", serif;
   
   --animate-spin-slow: spin-slow 12s linear infinite;
   --animate-float: float 6s ease-in-out infinite;
@@ -84,9 +85,101 @@
   z-index: 50;
 }
 
+/* 1930s specific soft-vignetted organic grain representing preserved historical paper & vinyl lacquer */
+.film-grain-1930s {
+  position: relative;
+}
+
+.film-grain-1930s::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  /* Velvet theater vignette frame representing luxurious aged cardboard/lacquer edges with soft light */
+  background: radial-gradient(circle at 50% 36%, transparent 22%, rgba(20, 15, 11, 0.42) 70%, rgba(10, 8, 5, 0.88) 100%);
+  pointer-events: none;
+  z-index: 49;
+}
+
+.film-grain-1930s::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 100%;
+  /* High resolution archival paper fiber texture */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.52' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%2523noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.058;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: 50;
+}
+
 /* Immersive UI Specific Glow Background and Vinyl pattern */
 .glow-bg {
   background: radial-gradient(circle at 70% 30%, #2e1065 0%, transparent 60%), radial-gradient(circle at 20% 80%, #1e1b4b 0%, transparent 50%);
+}
+
+/* 1930s Velvet darkness with subtle amber-violet and tungsten candlelight diffusion */
+.glow-bg-1930s {
+  background: radial-gradient(circle at 50% 25%, rgba(220, 195, 160, 0.17) 0%, transparent 72%), 
+              radial-gradient(circle at 15% 45%, rgba(175, 125, 60, 0.09) 0%, transparent 60%),
+              radial-gradient(circle at 85% 75%, rgba(135, 95, 55, 0.08) 0%, transparent 65%);
+}
+
+/* Aged heavy cotton paper background with pressed dye grain */
+.poster-paper-1930s {
+  background-color: #1a1612;
+  background-image: 
+    radial-gradient(circle at 50% 32%, rgba(250, 200, 140, 0.14) 0%, transparent 72%),
+    radial-gradient(circle at 50% 50%, transparent 50%, rgba(6, 5, 4, 0.78) 100%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.032' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.77 0 0 0 0 0.69 0 0 0 0 0.58 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%2523paperNoise)'/%3E%3C/svg%3E");
+  background-blend-mode: screen, normal, color-dodge;
+}
+
+/* Gold foil luxury text style with warm amber text gradient */
+.gold-foil-text {
+  background: linear-gradient(135deg, #ffffff 0%, #faecd7 25%, #deb380 50%, #fbe8d0 75%, #bfa075 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #faebd7;
+  text-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.9),
+    0 0 8px rgba(210, 180, 140, 0.18);
+}
+
+/* Dynamic thin gold frame outlines */
+.gold-foil-border {
+  border-color: rgba(197, 168, 128, 0.22);
+  box-shadow: 0 0 15px rgba(197, 168, 128, 0.04);
+}
+
+/* Low-shadow warm organic sepia shadows */
+.shadow-sepia-lg {
+  box-shadow: 
+    0 30px 85px -15px rgba(16, 12, 9, 0.96),
+    0 0 50px rgba(197, 168, 128, 0.12); /* Museum style back-light spotlight glow to lift artifact */
+}
+.shadow-sepia-sm {
+  box-shadow: 0 4px 18px rgba(20, 15, 11, 0.35);
+}
+
+/* Elegant wax-seal/brass museum style button and interface controls */
+.museum-btn-1930s {
+  background: linear-gradient(to bottom, #1d1814 0%, #15110e 100%);
+  border: 1px solid rgba(197, 168, 128, 0.28);
+  color: #dec8ac;
+  letter-spacing: 0.06em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02), 0 2px 4px rgba(0, 0, 0, 0.45);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.museum-btn-1930s:hover {
+  background: linear-gradient(to bottom, #231c17 0%, #191411 100%);
+  border-color: rgba(197, 168, 128, 0.52);
+  color: #f3e6d5;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 16px rgba(197, 168, 128, 0.16);
+}
+.museum-btn-1930s:active {
+  background: #110e0c;
+  transform: scale(0.98);
 }
 
 .vinyl-spin {

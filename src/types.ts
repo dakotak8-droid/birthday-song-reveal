@@ -16,6 +16,10 @@ export interface NostalgiaResult {
   culturalSnapshot: string;
   userBirthdayFormatted?: string;
   matchedChartWeek?: string;
+  celebrityBirthMonth?: number;
+  celebrityBirthDay?: number;
+  userBirthMonth?: number;
+  userBirthDay?: number;
 }
 
 export interface SavedSearch {
