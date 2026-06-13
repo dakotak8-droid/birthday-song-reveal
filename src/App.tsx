@@ -835,6 +835,23 @@ export default function App() {
   const [hasAlbumArtError, setHasAlbumArtError] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<"png" | "pdf">("png");
 
+  const clearResultAndStates = () => {
+    setResult(null);
+    setIsAudioPlaying(false);
+    setPosterTitle("The Song That Welcomed My Story");
+    setPosterCity("");
+    setPosterSpotlight("culture");
+    setPosterTheme("violet");
+    setPosterDedication("");
+    setIsExporting(false);
+    setExportError(null);
+    setAlbumArtUrl(null);
+    setIsVintagePortrait(false);
+    setVintagePortraitCaption("");
+    setHasAlbumArtError(false);
+    setCopied(false);
+  };
+
   const resultSectionRef = useRef<HTMLDivElement>(null);
   const userClickedRevealRef = useRef(false);
 
@@ -1314,9 +1331,9 @@ export default function App() {
       return;
     }
 
+    clearResultAndStates();
     setLoading(true);
     setLoadingStep(0);
-    setIsAudioPlaying(false);
     setError(null);
     try {
       const response = await fetch("/api/reveal", {
@@ -1355,6 +1372,7 @@ export default function App() {
       }, 300);
     } catch (err: any) {
       console.error(err);
+      clearResultAndStates();
       setError(err.message || "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
@@ -1439,9 +1457,9 @@ export default function App() {
       return;
     }
 
+    clearResultAndStates();
     setLoading(true);
     setLoadingStep(0);
-    setIsAudioPlaying(false);
 
     console.log("REVEAL_API_CALLED");
     try {
@@ -1482,6 +1500,7 @@ export default function App() {
       }, 300);
     } catch (err: any) {
       console.error(err);
+      clearResultAndStates();
       setError(err.message || "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
@@ -1739,8 +1758,7 @@ export default function App() {
                         console.log("DATE_CHANGED_NO_REVEAL");
                         userClickedRevealRef.current = false;
                         setMonth(e.target.value);
-                        setResult(null);
-                        setIsAudioPlaying(false);
+                        clearResultAndStates();
                         if (window.location.pathname !== "/" && window.location.pathname !== "") {
                           window.history.pushState(null, "", "/");
                         }
@@ -1770,8 +1788,7 @@ export default function App() {
                         console.log("DATE_CHANGED_NO_REVEAL");
                         userClickedRevealRef.current = false;
                         setDay(e.target.value);
-                        setResult(null);
-                        setIsAudioPlaying(false);
+                        clearResultAndStates();
                         if (window.location.pathname !== "/" && window.location.pathname !== "") {
                           window.history.pushState(null, "", "/");
                         }
@@ -1801,8 +1818,7 @@ export default function App() {
                         console.log("DATE_CHANGED_NO_REVEAL");
                         userClickedRevealRef.current = false;
                         setYear(e.target.value);
-                        setResult(null);
-                        setIsAudioPlaying(false);
+                        clearResultAndStates();
                         if (window.location.pathname !== "/" && window.location.pathname !== "") {
                           window.history.pushState(null, "", "/");
                         }
