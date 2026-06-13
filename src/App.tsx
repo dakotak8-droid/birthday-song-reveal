@@ -879,44 +879,90 @@ export default function App() {
                   .trim();
               };
 
+              const isGroupOrBand = (artistName: string) => {
+                const norm = artistName.toLowerCase();
+                const groupKeywords = [
+                  "commodores", "beatles", "bee gees", "temptations", "supremes", 
+                  "jackson 5", "monkees", "beach boys", "four tops", "platters", 
+                  "everly brothers", "shirelles", "miracles", "mamas & the papas", 
+                  "association", "band", "group", "orchestra", "singers", "kool & the gang", 
+                  "earth wind & fire", "spinners", "gladys knight", "pips", "drifters", 
+                  "chiffons", "ronettes", "crystals", "animals", "kinks", "who", 
+                  "rolling stones", "byrds", "turtles", "creedence", "sly & the family stone", 
+                  "chicago", "fleetwood mac", "pink floyd", "led zeppelin", "eagles", "queen", 
+                  "abba", "clash", "police", "u2", "rem", "nirvana", "pearl jam", "pointer sisters"
+                ];
+                return groupKeywords.some(kw => norm.includes(kw));
+              };
+
               const normTargetTitle = normalize(result.songTitle);
               const normTargetArtist = normalize(result.artist);
 
-              // Find a track that validates properly
-              const validTrack = data.results.find((t: any) => {
-                const normCandTitle = normalize(t.trackName);
-                const normCandArtist = normalize(t.artistName);
+              const isReasonableArtistMatch = (targetArtist: string, candidateArtist: string) => {
+                const normTarget = normalize(targetArtist);
+                const normCand = normalize(candidateArtist);
 
-                // 1. Verify Song Title Match
-                const targetWords = normTargetTitle.split(" ").filter(w => w.length > 2 && w !== "gets" && w !== "your" && w !== "with");
-                const titleWordsMatch = targetWords.length > 0 
-                  ? targetWords.every(w => normCandTitle.includes(w))
-                  : normCandTitle.includes(normTargetTitle) || normTargetTitle.includes(normCandTitle);
+                if (normTarget === normCand) return true;
 
-                const hasTitleMatch = normCandTitle.includes(normTargetTitle) || 
-                                      normTargetTitle.includes(normCandTitle) || 
-                                      titleWordsMatch;
+                if (isGroupOrBand(targetArtist)) {
+                  const targetWords = normTarget.split(" ").filter(w => w.length > 2);
+                  const hasGroupWord = targetWords.some(w => normCand.includes(w));
+                  if (!hasGroupWord) return false;
 
-                if (!hasTitleMatch) return false;
+                  // Specific check: do not match Lionel Richie solo for Commodores
+                  if (normTarget.includes("commodores") && normCand.includes("lionel richie") && !normCand.includes("commodores")) {
+                    return false;
+                  }
+                  if (normTarget.includes("jackson 5") && normCand.includes("michael jackson") && !normCand.includes("jackson 5")) {
+                    return false;
+                  }
+                  if (normTarget.includes("supremes") && normCand.includes("diana ross") && !normCand.includes("supremes")) {
+                    return false;
+                  }
+                } else {
+                  const stopWords = new Set([
+                    "and", "or", "the", "his", "her", "their", "orchestra", "band", "singers", 
+                    "with", "by", "of", "vocalists", "chorus", "ensemble", "group", "association", 
+                    "society", "trio", "quartet", "quintet", "music", "soundtrack", "cast", "recording"
+                  ]);
 
-                // 2. Verify Artist Match (avoid mismatched artists across eras)
-                const stopWords = new Set([
-                  "and", "or", "the", "his", "her", "their", "orchestra", "band", "singers", 
-                  "with", "by", "of", "vocalists", "chorus", "ensemble", "group", "association", 
-                  "society", "trio", "quartet", "quintet", "music", "soundtrack", "cast", "recording"
-                ]);
+                  const targetArtistWords = normTarget.split(" ").filter(w => !stopWords.has(w) && w.length > 1);
+                  const sharesWord = targetArtistWords.some(w => normCand.includes(w));
+                  if (!sharesWord) return false;
+                }
 
-                const targetArtistWords = normTargetArtist.split(" ").filter(w => !stopWords.has(w) && w.length > 1);
-                const candArtistWords = normCandArtist.split(" ").filter(w => !stopWords.has(w) && w.length > 1);
+                return true;
+              };
 
-                const sharesDistinctWord = targetArtistWords.some(w => normCandArtist.includes(w)) ||
-                                           candArtistWords.some(w => normTargetArtist.includes(w));
+              const isReasonableTitleMatch = (targetTitle: string, candidateTitle: string) => {
+                const normTarget = normalize(targetTitle);
+                const normCand = normalize(candidateTitle);
 
-                const isSubstring = normCandArtist.includes(normTargetArtist) || normTargetArtist.includes(normCandArtist);
+                if (normTarget === normCand) return true;
+                if (normCand.includes(normTarget) || normTarget.includes(normCand)) return true;
 
-                if (!sharesDistinctWord && !isSubstring) return false;
+                const targetWords = normTarget.split(" ").filter(w => w.length > 2 && w !== "the" && w !== "and" && w !== "you" && w !== "for");
+                if (targetWords.length > 0) {
+                  const matchedCount = targetWords.filter(w => normCand.includes(w)).length;
+                  if (targetWords.length <= 2) {
+                    return matchedCount === targetWords.length;
+                  } else {
+                    return matchedCount >= targetWords.length - 1;
+                  }
+                }
 
-                // 3. Verify Genre & Decade compatibility (exclude modern genres for vintage records)
+                return false;
+              };
+
+              // First filter candidates to ones that are reasonably valid
+              const candidateTracks = data.results.filter((t: any) => {
+                const isTitleOk = isReasonableTitleMatch(result.songTitle, t.trackName);
+                const isArtistOk = isReasonableArtistMatch(result.artist, t.artistName);
+                if (!isTitleOk || !isArtistOk) {
+                  return false;
+                }
+
+                // Verify Genre & Decade compatibility
                 if (result.releaseYear < 1940 && (t.primaryGenreName?.toLowerCase().includes("hip hop") || t.primaryGenreName?.toLowerCase().includes("metal") || t.primaryGenreName?.toLowerCase().includes("electronic"))) {
                   return false;
                 }
@@ -924,8 +970,57 @@ export default function App() {
                 return true;
               });
 
-              if (validTrack) {
-                let artworkUrl = validTrack.artworkUrl100 || validTrack.artworkUrl600;
+              // Score and rank the candidate tracks
+              const rankedTracks = candidateTracks.map((t: any) => {
+                const normCandTitle = normalize(t.trackName);
+                const normCandArtist = normalize(t.artistName);
+                const normCandAlbum = normalize(t.collectionName || "");
+
+                let score = 0;
+
+                // 1. Title matching hierarchy
+                if (normCandTitle === normTargetTitle) {
+                  score += 100;
+                } else if (normCandTitle.includes(normTargetTitle)) {
+                  score += 50;
+                }
+
+                // 2. Artist matching hierarchy
+                if (normCandArtist === normTargetArtist) {
+                  score += 200; // Perfect exact artist match
+                } else if (normCandArtist.includes(normTargetArtist)) {
+                  score += 100;
+                }
+
+                // Penalize if target is Commodores but candidate contains Lionel Richie
+                if (normTargetArtist === "commodores" && normCandArtist.includes("lionel richie")) {
+                  score -= 150;
+                }
+
+                // Penalize solo compilations when target is a group/band
+                if (isGroupOrBand(result.artist)) {
+                  if (normCandAlbum.includes("lionel richie") && !normCandAlbum.includes("commodores")) {
+                    score -= 180;
+                  }
+                  if (normCandAlbum.includes("greatest hits") || normCandAlbum.includes("best of") || normCandAlbum.includes("compilation") || normCandAlbum.includes("collection")) {
+                    // Check if it's a solo compilation versus a band compilation
+                    if (normCandAlbum.includes("lionel") || normCandAlbum.includes("diana") || normCandAlbum.includes("michael")) {
+                      score -= 120;
+                    }
+                  }
+                }
+
+                return { track: t, score };
+              });
+
+              // Sort tracks by score descending
+              rankedTracks.sort((a, b) => b.score - a.score);
+
+              // We select the top valid track with a score above -50
+              const bestCandidate = rankedTracks.length > 0 && rankedTracks[0].score >= -50 ? rankedTracks[0].track : null;
+
+              if (bestCandidate) {
+                let artworkUrl = bestCandidate.artworkUrl100 || bestCandidate.artworkUrl600;
                 if (artworkUrl) {
                   // Convert artwork from lower res to professional print high-res (600x600 or 1000x1000)
                   artworkUrl = artworkUrl.replace("100x100bb.jpg", "600x600bb.jpg")
@@ -934,7 +1029,7 @@ export default function App() {
                   setAlbumArtUrl(artworkUrl);
                   setIsVintagePortrait(false);
                   foundAlbumCover = true;
-                  console.log(`[VALIDATION SUCCESS] iTunes artwork matches expected metadata: "${validTrack.trackName}" by "${validTrack.artistName}"`);
+                  console.log(`[VALIDATION SUCCESS] iTunes artwork matches expected metadata (Score: ${rankedTracks[0].score}): "${bestCandidate.trackName}" by "${bestCandidate.artistName}"`);
                 }
               }
             }
