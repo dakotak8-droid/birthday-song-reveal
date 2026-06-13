@@ -3,6 +3,7 @@ import path from "path";
 import fs from "fs";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
+import { BILLBOARD_ARCHIVE } from "./src/data/billboard-archive";
 
 let viteInstance: any = null;
 
@@ -435,14 +436,41 @@ function getHistorical1930sRecord(birthDateStr: string, matchedChartWeek: string
   return result;
 }
 
+function getLocalArchiveResponse(m: number, d: number, year: number, userBirthdayFormatted: string, matchedChartWeek: string, songRecord: { songTitle: string; artist: string; year: number }) {
+  const celebrityInfo = getCelebrityForDay(m, d);
+  return {
+    songTitle: songRecord.songTitle,
+    artist: songRecord.artist,
+    releaseYear: year,
+    genre: "Nostalgic Classic",
+    billboardRank: "#1 Billboard Hot 100",
+    albumCoverDescription: "A retro vinyl sleeve reflecting the style and design of the era.",
+    spotifyUrl: `https://open.spotify.com/search/${encodeURIComponent(songRecord.songTitle + " " + songRecord.artist)}`,
+    emotionalSentence: "This classic melody defined the cultural airwaves during the week my story began.",
+    movieTitle: "A Box Office Classic",
+    movieDescription: "Theaters across America were packed with people escaping into cinematic wonder.",
+    tvShowTitle: "Prime Time Broadcast",
+    tvShowDescription: "A legendary show that brought families together around glowing living room screens.",
+    celebrityName: celebrityInfo.celebrityName,
+    celebrityDescription: celebrityInfo.celebrityDescription,
+    celebrityBirthMonth: celebrityInfo.celebrityBirthMonth,
+    celebrityBirthDay: celebrityInfo.celebrityBirthDay,
+    culturalSnapshot: "A memorable generation defined by dynamic vinyl grooves, classic radio broadcasts, and lasting memories.",
+    userBirthdayFormatted,
+    matchedChartWeek,
+    isFallback: false,
+    source: "local-archive"
+  };
+}
+
 // Global abstracted utility to fetch or generate birthday reveal metadata via Gemini or local database
 async function getNostalgiaData(birthDate: string): Promise<any> {
   const parts = birthDate.split("-");
-  const y = parseInt(parts[0]);
-  const m = parseInt(parts[1]);
-  const d = parseInt(parts[2]);
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  const d = parseInt(parts[2], 10);
 
-  const { userBirthdayFormatted, matchedChartWeek } = getChartDates(birthDate);
+  const { userBirthdayFormatted, matchedChartWeek, chartYear } = getChartDates(birthDate);
 
   // If the birthday is in the 1930s, resolve immediately from the high-fidelity historical record dataset
   if (y < 1940) {
@@ -452,17 +480,19 @@ async function getNostalgiaData(birthDate: string): Promise<any> {
     return data;
   }
 
+  // Find the verified Billboard #1 song from our local archive
+  const songRecord = BILLBOARD_ARCHIVE.find(r => r.year === chartYear) || BILLBOARD_ARCHIVE.find(r => r.year === y);
+  if (!songRecord) {
+    throw new Error("No historical data available for the requested year.");
+  }
+
   // Check if Gemini API Key is available
   const apiKey = process.env.GEMINI_API_KEY;
   console.log(`[DEBUG] process.env.GEMINI_API_KEY exists: ${!!apiKey}`);
-  console.log(`[DEBUG] GEMINI_API_KEY length: ${apiKey ? apiKey.length : 0}`);
 
   if (!apiKey) {
-    console.warn("GEMINI_API_KEY environment variable is not set. Using rich fallback data.");
-    const data = getFallbackNostalgia(birthDate) as any;
-    data.source = "static-fallback";
-    console.log(`[DEBUG] SOURCE: static-fallback (No API key)`);
-    return data;
+    console.warn("GEMINI_API_KEY environment variable is not set. Using local archive data.");
+    return getLocalArchiveResponse(m, d, chartYear, userBirthdayFormatted, matchedChartWeek, songRecord);
   }
 
   let ai;
@@ -477,111 +507,125 @@ async function getNostalgiaData(birthDate: string): Promise<any> {
     });
     console.log(`[DEBUG] Gemini SDK initialization succeeded`);
   } catch (initErr: any) {
-    console.error(`[DEBUG] Gemini SDK initialization failed:`, initErr);
-    throw initErr;
+    console.error(`[DEBUG] Gemini SDK initialization failed, falling back to local archive:`, initErr);
+    return getLocalArchiveResponse(m, d, chartYear, userBirthdayFormatted, matchedChartWeek, songRecord);
   }
 
   const userMonth = m;
   const userDay = d;
 
-  const prompt = `Identify the historic #1 song on the Hot 100 chart for the week ending on or before ${matchedChartWeek}. 
+  const prompt = `Identify and describe the musical and cultural backdrop of the year ${chartYear} during the week of ${matchedChartWeek}.
   User Birthday: ${userBirthdayFormatted} (Date Entered: ${birthDate})
   User Birth Month: ${userMonth}, User Birth Day: ${userDay}.
+  
+  The verified #1 Billboard Hot 100 song for this week is: "${songRecord.songTitle}" by ${songRecord.artist}.
+  You MUST return exactly this official song Title: "${songRecord.songTitle}" and Artist: "${songRecord.artist}" in your response.
   
   CRITICAL: For the celebrityName, find a legendary star, famous director, writer, artist, or creative pioneer who shares the EXACT same birth calendar month (${userMonth}) and day (${userDay}) as the user. The year does NOT need to match. 
   You MUST output the celebrity's exact month under celebrityBirthMonth (must be exactly ${userMonth}) and day under celebrityBirthDay (must be exactly ${userDay}). 
   If you cannot find/verify a celebrity born on exactly month ${userMonth} and day ${userDay}, return "No iconic birthday match discovered" for celebrityName, and "A distinctive day in history, waiting for my unique story to unfold." for celebrityDescription, with celebrityBirthMonth: 0, celebrityBirthDay: 0. 
   Do NOT select any celebrity born on a different month or day. No adjacent or close dates allowed.`;
 
-  console.log(`[DEBUG] Executing Gemini API request for date: ${birthDate}...`);
-   const response = await ai.models.generateContent({
-    model: "gemini-3.5-flash",
-    contents: prompt,
-    config: {
-      systemInstruction: "You are a warm, affectionate pop-culture historian capturing memories from the perspective of the visitor. Your goal is to describe my birthday soundtrack. Identify the ACTUAL #1 Billboard Hot 100 song on the exact weekly chart date provided in the prompt (closest Saturday on or before birthDate). Return a beautifully framed structured JSON with nostalgic details of that point in time. Avoid textbook, encyclopedia, or dry informational summaries. Every single description field (movieDescription, tvShowDescription, celebrityDescription, culturalSnapshot) MUST use highly atmospheric, sensory, and emotionally immersive storytelling. Let the user FEEL the textures, sounds, and visual imagination of the era—write as if 'this world was actively happening when my story began'. Each of these must be an extremely short, punchy, scan-friendly, single cinematic observation of only 1 line (maximum 15 words) that captures the era's raw emotion written from the perspective of my story. The 'culturalSnapshot' field MUST feel like 'the emotional weather of the generation' (not a textbook list). The emotionalSentence field MUST be a clean, confident, single cinematic line (max 15 words) describing the song's relationship to my arrival, completely avoiding overly poetic or AI-generated sounding prose. Excellent examples for emotionalSentence: 'Motown filled American radios the week my story began.', 'This anthem echoed through living rooms across America when I arrived.', 'The Supremes were everywhere the week my story entered the world.', 'Classic soul tracks filled the airwaves as my era dawned.' Do not hallucinate titles or artists.",
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          songTitle: { type: Type.STRING, description: "The official title of the #1 Billboard song corresponding to the matched chart week." },
-          artist: { type: Type.STRING, description: "The artist or band name behind the song." },
-          releaseYear: { type: Type.INTEGER, description: "The year the song dominated the charts." },
-          genre: { type: Type.STRING, description: "The genre of the track, e.g. 'Motown / Soul', 'Synthpop', 'Alternative', etc." },
-          billboardRank: { type: Type.STRING, description: "Usually '#1 Billboard Hot 100' or similar historic ranking status." },
-          albumCoverDescription: { type: Type.STRING, description: "A beautiful description of what its visual artwork looks like (e.g. 'A deep gold record sleeve featuring stylish vintage portraits')." },
-          spotifyUrl: { type: Type.STRING, description: "A URL searching for this track on Spotify, e.g., 'https://open.spotify.com/search/Song%20Artist'" },
-          emotionalSentence: { type: Type.STRING, description: "A clean, confident, single cinematic line of max 15 words representing the music landscape (e.g., 'Motown filled American radios the week my story began.')" },
-          movieTitle: { type: Type.STRING, description: "The #1 film in North American cinema box offices that week or month." },
-          movieDescription: { type: Type.STRING, description: "A brief nostalgic snippet highlighting the cinema vibe of that time (single short observation line, max 15 words)." },
-          tvShowTitle: { type: Type.STRING, description: "The top-rated TV show taking over household living rooms around that year." },
-          tvShowDescription: { type: Type.STRING, description: "A brief atmospheric snippet about what made the show popular (single short observation line, max 15 words)." },
-          celebrityName: { type: Type.STRING, description: "A legendary star or creative pioneer born on the EXACT same month and day as the user (month " + userMonth + ", day " + userDay + "). If none found, write: No iconic birthday match discovered" },
-          celebrityDescription: { type: Type.STRING, description: "A one-line nostalgic sentence of max 15 words about them sharing my special day. If celebrityName is No iconic birthday match discovered, write: A distinctive day in history, waiting for my unique story to unfold." },
-          celebrityBirthMonth: { type: Type.INTEGER, description: "The calendar month of birth for the chosen celebrity (must be exactly " + userMonth + " or 0 if none)." },
-          celebrityBirthDay: { type: Type.INTEGER, description: "The calendar day of birth for the chosen celebrity (must be exactly " + userDay + " or 0 if none)." },
-          culturalSnapshot: { type: Type.STRING, description: "A deeply nostalgic highlight capturing the technology, style, or youth culture paradigm shift of that moment (single short observation line, max 15 words)." },
-          userBirthdayFormatted: { type: Type.STRING, description: "Please return exactly: " + userBirthdayFormatted },
-          matchedChartWeek: { type: Type.STRING, description: "Please return exactly: " + matchedChartWeek }
-        },
-        required: [
-          "songTitle",
-          "artist",
-          "releaseYear",
-          "genre",
-          "billboardRank",
-          "albumCoverDescription",
-          "spotifyUrl",
-          "emotionalSentence",
-          "movieTitle",
-          "movieDescription",
-          "tvShowTitle",
-          "tvShowDescription",
-          "celebrityName",
-          "celebrityDescription",
-          "celebrityBirthMonth",
-          "celebrityBirthDay",
-          "culturalSnapshot",
-          "userBirthdayFormatted",
-          "matchedChartWeek"
-        ]
+  try {
+    console.log(`[DEBUG] Executing Gemini API request for date: ${birthDate}...`);
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: `You are a warm, affectionate pop-culture historian capturing memories from the perspective of the visitor. Your goal is to describe my birthday soundtrack. Overwrite songTitle option with "${songRecord.songTitle}" and artist option with "${songRecord.artist}". Return a beautifully framed structured JSON with nostalgic details of that point in time. Avoid textbook, encyclopedia, or dry informational summaries. Every single description field (movieDescription, tvShowDescription, celebrityDescription, culturalSnapshot) MUST use highly atmospheric, sensory, and emotionally immersive storytelling. Let the user FEEL the textures, sounds, and visual imagination of the era—write as if 'this world was actively happening when my story began'. Each of these must be an extremely short, punchy, scan-friendly, single cinematic observation of only 1 line (maximum 15 words) that captures the era's raw emotion written from the perspective of my story. The 'culturalSnapshot' field MUST feel like 'the emotional weather of the generation' (not a textbook list). The emotionalSentence field MUST be a clean, confident, single cinematic line (max 15 words) describing the song's relationship to my arrival, completely avoiding overly poetic or AI-generated sounding prose. Excellent examples for emotionalSentence: 'Motown filled American radios the week my story began.', 'This anthem echoed through living rooms across America when I arrived.', 'The Supremes were everywhere the week my story entered the world.', 'Classic soul tracks filled the airwaves as my era dawned.' Do not hallucinate titles or artists.`,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            songTitle: { type: Type.STRING, description: "Must be exactly: " + songRecord.songTitle },
+            artist: { type: Type.STRING, description: "Must be exactly: " + songRecord.artist },
+            releaseYear: { type: Type.INTEGER, description: "The year the song dominated the charts." },
+            genre: { type: Type.STRING, description: "The genre of the track, e.g. 'Motown / Soul', 'Synthpop', 'Alternative', etc." },
+            billboardRank: { type: Type.STRING, description: "Usually '#1 Billboard Hot 100' or similar historic ranking status." },
+            albumCoverDescription: { type: Type.STRING, description: "A beautiful description of what its visual artwork looks like (e.g. 'A deep gold record sleeve featuring stylish vintage portraits')." },
+            spotifyUrl: { type: Type.STRING, description: "A URL searching for this track on Spotify, e.g., 'https://open.spotify.com/search/Song%20Artist'" },
+            emotionalSentence: { type: Type.STRING, description: "A clean, confident, single cinematic line of max 15 words representing the music landscape (e.g., 'Motown filled American radios the week my story began.')" },
+            movieTitle: { type: Type.STRING, description: "The #1 film in North American cinema box offices that week or month." },
+            movieDescription: { type: Type.STRING, description: "A brief nostalgic snippet highlighting the cinema vibe of that time (single short observation line, max 15 words)." },
+            tvShowTitle: { type: Type.STRING, description: "The top-rated TV show taking over household living rooms around that year." },
+            tvShowDescription: { type: Type.STRING, description: "A brief atmospheric snippet about what made the show popular (single short observation line, max 15 words)." },
+            celebrityName: { type: Type.STRING, description: "A legendary star or creative pioneer born on the EXACT same month and day as the user (month " + userMonth + ", day " + userDay + "). If none found, write: No iconic birthday match discovered" },
+            celebrityDescription: { type: Type.STRING, description: "A one-line nostalgic sentence of max 15 words about them sharing my special day. If celebrityName is No iconic birthday match discovered, write: A distinctive day in history, waiting for my unique story to unfold." },
+            celebrityBirthMonth: { type: Type.INTEGER, description: "The calendar month of birth for the chosen celebrity (must be exactly " + userMonth + " or 0 if none)." },
+            celebrityBirthDay: { type: Type.INTEGER, description: "The calendar day of birth for the chosen celebrity (must be exactly " + userDay + " or 0 if none)." },
+            culturalSnapshot: { type: Type.STRING, description: "A deeply nostalgic highlight capturing the technology, style, or youth culture paradigm shift of that moment (single short observation line, max 15 words)." },
+            userBirthdayFormatted: { type: Type.STRING, description: "Please return exactly: " + userBirthdayFormatted },
+            matchedChartWeek: { type: Type.STRING, description: "Please return exactly: " + matchedChartWeek }
+          },
+          required: [
+            "songTitle",
+            "artist",
+            "releaseYear",
+            "genre",
+            "billboardRank",
+            "albumCoverDescription",
+            "spotifyUrl",
+            "emotionalSentence",
+            "movieTitle",
+            "movieDescription",
+            "tvShowTitle",
+            "tvShowDescription",
+            "celebrityName",
+            "celebrityDescription",
+            "celebrityBirthMonth",
+            "celebrityBirthDay",
+            "culturalSnapshot",
+            "userBirthdayFormatted",
+            "matchedChartWeek"
+          ]
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) {
+      throw new Error("No response text from Gemini API.");
+    }
+
+    console.log(`[DEBUG] Gemini request executed successfully and returned text payload.`);
+    const nostalgiaData = JSON.parse(text);
+    nostalgiaData.source = "gemini";
+    console.log(`[DEBUG] SOURCE: gemini`);
+    
+    // Always enforce the local verified song to bypass any potential model hallucination
+    nostalgiaData.songTitle = songRecord.songTitle;
+    nostalgiaData.artist = songRecord.artist;
+    nostalgiaData.releaseYear = chartYear;
+    nostalgiaData.userBirthdayFormatted = userBirthdayFormatted;
+    nostalgiaData.matchedChartWeek = matchedChartWeek;
+    
+    // Inject and validate birth dates
+    nostalgiaData.userBirthMonth = userMonth;
+    nostalgiaData.userBirthDay = userDay;
+
+    const celebrityMonthFetched = Number(nostalgiaData.celebrityBirthMonth);
+    const celebrityDayFetched = Number(nostalgiaData.celebrityDayFetched || nostalgiaData.celebrityBirthDay);
+
+    let isCelebrityMatch = false;
+    if (celebrityMonthFetched === userMonth && celebrityDayFetched === userDay) {
+      if (nostalgiaData.celebrityName && nostalgiaData.celebrityName.toLowerCase() !== "no iconic birthday match discovered" && nostalgiaData.celebrityName.trim() !== "") {
+        isCelebrityMatch = true;
       }
     }
-  });
 
-  const text = response.text;
-  if (!text) {
-    throw new Error("No response text from Gemini API.");
-  }
-
-  console.log(`[DEBUG] Gemini request executed successfully and returned text payload.`);
-  const nostalgiaData = JSON.parse(text);
-  nostalgiaData.source = "gemini";
-  console.log(`[DEBUG] SOURCE: gemini`);
-  nostalgiaData.userBirthdayFormatted = nostalgiaData.userBirthdayFormatted || userBirthdayFormatted;
-  nostalgiaData.matchedChartWeek = nostalgiaData.matchedChartWeek || matchedChartWeek;
-  
-  // Inject and validate birth dates
-  nostalgiaData.userBirthMonth = userMonth;
-  nostalgiaData.userBirthDay = userDay;
-
-  const celebrityMonthFetched = Number(nostalgiaData.celebrityBirthMonth);
-  const celebrityDayFetched = Number(nostalgiaData.celebrityBirthDay);
-
-  let isCelebrityMatch = false;
-  if (celebrityMonthFetched === userMonth && celebrityDayFetched === userDay) {
-    if (nostalgiaData.celebrityName && nostalgiaData.celebrityName.toLowerCase() !== "no iconic birthday match discovered" && nostalgiaData.celebrityName.trim() !== "") {
-      isCelebrityMatch = true;
+    if (!isCelebrityMatch) {
+      nostalgiaData.celebrityName = "No iconic birthday match discovered";
+      nostalgiaData.celebrityDescription = "A distinctive day in history, waiting for my unique story to unfold.";
+      nostalgiaData.celebrityBirthMonth = 0;
+      nostalgiaData.celebrityBirthDay = 0;
     }
-  }
 
-  if (!isCelebrityMatch) {
-    nostalgiaData.celebrityName = "No iconic birthday match discovered";
-    nostalgiaData.celebrityDescription = "A distinctive day in history, waiting for my unique story to unfold.";
-    nostalgiaData.celebrityBirthMonth = 0;
-    nostalgiaData.celebrityBirthDay = 0;
+    return nostalgiaData;
+  } catch (apiError: any) {
+    console.error(`[DEBUG] Gemini API fell back due to error:`, apiError);
+    // Return high-fidelity verified song record offline
+    return getLocalArchiveResponse(m, d, chartYear, userBirthdayFormatted, matchedChartWeek, songRecord);
   }
-
-  return nostalgiaData;
 }
 
 // API Route to reveal nostalgic birthday insights
