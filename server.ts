@@ -620,6 +620,15 @@ app.post("/api/reveal", async (req, res) => {
     res.json(nostalgiaData);
   } catch (error: any) {
     console.error("Reveal API Error:", error);
+    
+    const errMessage = (error.message || "").toLowerCase();
+    const isRateLimit = errMessage.includes("429") || error.status === 429 || error.statusCode === 429 || errMessage.includes("rate limit") || errMessage.includes("quota");
+    
+    if (isRateLimit) {
+      console.log(`[DEBUG] Detected 429/Rate Limit error. Returning friendly error message.`);
+      return res.status(429).json({ error: "The music archive is busy. Please try again in a minute." });
+    }
+
     // Fallback gracefully instead of throwing a 500 status on legitimate queries
     try {
       console.log(`[DEBUG] SOURCE: static-fallback (Error caught in /api/reveal, falling back)`);

@@ -7,6 +7,9 @@ import {
 } from "lucide-react";
 import { NostalgiaResult, SavedSearch } from "./types";
 
+// In-memory cache to prevent repeated reveals for the same date from calling Gemini again
+const revealCache: Record<string, NostalgiaResult> = {};
+
 // Keepsake Customization Options
 const spotlightOptions = [
   { id: "culture", label: "The Era Vibe", icon: "✨", subtitle: "Era Vibe & Cultural Snapshot", description: "A snapshot of the generation's collective pulse and social shift." },
@@ -1175,6 +1178,7 @@ export default function App() {
           const initialData = (window as any).__INITIAL_DATA__;
           if (initialData && initialData.userBirthMonth === parseInt(m, 10) && initialData.userBirthDay === parseInt(d, 10)) {
             setResult(initialData);
+            revealCache[parsedBirthDate] = initialData; // Cache server-rendered data
             (window as any).__INITIAL_DATA__ = null; // Clear so subsequent runs don't conflict
             
             const title = `The #1 Hit When I Arrived – ${initialData.userBirthdayFormatted}`;
@@ -1191,8 +1195,7 @@ export default function App() {
               resultSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
             }, 500);
           } else {
-            // Need to client-fetch
-            await fetchDateReveal(parsedBirthDate);
+            // Do NOT call fetchDateReveal automatically. Just prefill inputs and let user click Reveal.
           }
         }
       }
@@ -1218,6 +1221,7 @@ export default function App() {
           setDay(parseInt(d, 10).toString());
           
           const found = history.find((h) => h.birthDate === parsedBirthDate);
+          const cached = revealCache[parsedBirthDate];
           if (found) {
             setResult(found.data);
             const title = `The #1 Hit When I Arrived – ${found.data.userBirthdayFormatted}`;
@@ -1229,8 +1233,19 @@ export default function App() {
               userBirthdayFormatted: found.data.userBirthdayFormatted,
               birthDate: parsedBirthDate
             });
+          } else if (cached) {
+            setResult(cached);
+            const title = `The #1 Hit When I Arrived – ${cached.userBirthdayFormatted}`;
+            const desc = `Discover the #1 Billboard song during the week of ${cached.userBirthdayFormatted} and explore the soundtrack of my arrival.`;
+            const canonical = `${window.location.origin}/birthday-song/${dateSlug}`;
+            updatePageMetadata(title, desc, canonical, {
+              songTitle: cached.songTitle,
+              artist: cached.artist,
+              userBirthdayFormatted: cached.userBirthdayFormatted,
+              birthDate: parsedBirthDate
+            });
           } else {
-            await fetchDateReveal(parsedBirthDate);
+            setResult(null);
           }
         }
       } else if (path === "/" || path === "") {
@@ -1289,6 +1304,16 @@ export default function App() {
 
   // Reusable search logic
   const fetchDateReveal = async (formattedDate: string) => {
+    // Check in-memory cache first
+    const cachedData = revealCache[formattedDate];
+    if (cachedData) {
+      setResult(cachedData);
+      setTimeout(() => {
+        resultSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+      return;
+    }
+
     setLoading(true);
     setLoadingStep(0);
     setIsAudioPlaying(false);
@@ -1308,6 +1333,7 @@ export default function App() {
       }
 
       const data: NostalgiaResult = await response.json();
+      revealCache[formattedDate] = data; // store in-memory cache!
       setResult(data);
       saveToHistory(data, formattedDate);
 
@@ -1365,6 +1391,54 @@ export default function App() {
     }
 
     const formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+
+    // Check in-memory cache first
+    const cachedData = revealCache[formattedDate];
+    if (cachedData) {
+      setResult(cachedData);
+      const slug = formatDateToRoute(formattedDate);
+      if (slug) {
+        window.history.pushState(null, "", `/birthday-song/${slug}`);
+        const title = `The #1 Hit When I Arrived – ${cachedData.userBirthdayFormatted}`;
+        const desc = `Discover the #1 Billboard song during the week of ${cachedData.userBirthdayFormatted} and explore the soundtrack of my arrival.`;
+        const canonical = `${window.location.origin}/birthday-song/${slug}`;
+        updatePageMetadata(title, desc, canonical, {
+          songTitle: cachedData.songTitle,
+          artist: cachedData.artist,
+          userBirthdayFormatted: cachedData.userBirthdayFormatted,
+          birthDate: formattedDate
+        });
+      }
+      setTimeout(() => {
+        resultSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+      return;
+    }
+
+    // Check search history next
+    const foundHistory = history.find((h) => h.birthDate === formattedDate);
+    if (foundHistory) {
+      setResult(foundHistory.data);
+      revealCache[formattedDate] = foundHistory.data; // store in cache!
+      const slug = formatDateToRoute(formattedDate);
+      if (slug) {
+        window.history.pushState(null, "", `/birthday-song/${slug}`);
+        const title = `The #1 Hit When I Arrived – ${foundHistory.data.userBirthdayFormatted}`;
+        const desc = `Discover the #1 Billboard song during the week of ${foundHistory.data.userBirthdayFormatted} and explore the soundtrack of my arrival.`;
+        const canonical = `${window.location.origin}/birthday-song/${slug}`;
+        updatePageMetadata(title, desc, canonical, {
+          songTitle: foundHistory.data.songTitle,
+          artist: foundHistory.data.artist,
+          userBirthdayFormatted: foundHistory.data.userBirthdayFormatted,
+          birthDate: formattedDate
+        });
+      }
+      setTimeout(() => {
+        resultSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+      return;
+    }
+
     setLoading(true);
     setLoadingStep(0);
     setIsAudioPlaying(false);
@@ -1385,6 +1459,7 @@ export default function App() {
       }
 
       const data: NostalgiaResult = await response.json();
+      revealCache[formattedDate] = data; // store in-memory cache!
       setResult(data);
       saveToHistory(data, formattedDate);
 
