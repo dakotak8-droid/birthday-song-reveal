@@ -446,14 +446,20 @@ async function getNostalgiaData(birthDate: string): Promise<any> {
 
   // If the birthday is in the 1930s, resolve immediately from the high-fidelity historical record dataset
   if (y < 1940) {
-    return getHistorical1930sRecord(birthDate, matchedChartWeek);
+    const data = getHistorical1930sRecord(birthDate, matchedChartWeek) as any;
+    data.source = "static-fallback";
+    console.log(`[DEBUG] SOURCE: static-fallback (1930s)`);
+    return data;
   }
 
   // Check if Gemini API Key is available
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.warn("GEMINI_API_KEY environment variable is not set. Using rich fallback data.");
-    return getFallbackNostalgia(birthDate);
+    const data = getFallbackNostalgia(birthDate) as any;
+    data.source = "static-fallback";
+    console.log(`[DEBUG] SOURCE: static-fallback (No API key)`);
+    return data;
   }
 
   const ai = new GoogleGenAI({
@@ -537,6 +543,8 @@ async function getNostalgiaData(birthDate: string): Promise<any> {
   }
 
   const nostalgiaData = JSON.parse(text);
+  nostalgiaData.source = "gemini";
+  console.log(`[DEBUG] SOURCE: gemini`);
   nostalgiaData.userBirthdayFormatted = nostalgiaData.userBirthdayFormatted || userBirthdayFormatted;
   nostalgiaData.matchedChartWeek = nostalgiaData.matchedChartWeek || matchedChartWeek;
   

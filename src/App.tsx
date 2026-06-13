@@ -833,6 +833,7 @@ export default function App() {
   const [downloadFormat, setDownloadFormat] = useState<"png" | "pdf">("png");
 
   const resultSectionRef = useRef<HTMLDivElement>(null);
+  const userClickedRevealRef = useRef(false);
 
   // Fallback spotlight if "star" is selected but no valid matching celebrity exists
   useEffect(() => {
@@ -1242,6 +1243,10 @@ export default function App() {
   // Pre-validate date
   const handleReveal = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!userClickedRevealRef.current) {
+      return;
+    }
+    userClickedRevealRef.current = false;
     setError(null);
 
     if (!month || !day || !year) {
@@ -1269,6 +1274,7 @@ export default function App() {
     setLoadingStep(0);
     setIsAudioPlaying(false);
 
+    console.log("REVEAL_API_CALLED");
     try {
       const response = await fetch("/api/reveal", {
         method: "POST",
@@ -1560,8 +1566,14 @@ export default function App() {
                     <select
                       value={month}
                       onChange={(e) => {
+                        console.log("DATE_CHANGED_NO_REVEAL");
+                        userClickedRevealRef.current = false;
                         setMonth(e.target.value);
                         setResult(null);
+                        setIsAudioPlaying(false);
+                        if (window.location.pathname !== "/" && window.location.pathname !== "") {
+                          window.history.pushState(null, "", "/");
+                        }
                       }}
                       className={`w-full h-14 rounded-xl text-center text-sm font-sans focus:outline-hidden appearance-none cursor-pointer transition-all duration-353 text-ellipsis overflow-hidden whitespace-nowrap px-2 ${
                         result && activeDecadeMood.decade === "1930s"
@@ -1585,8 +1597,14 @@ export default function App() {
                     <select
                       value={day}
                       onChange={(e) => {
+                        console.log("DATE_CHANGED_NO_REVEAL");
+                        userClickedRevealRef.current = false;
                         setDay(e.target.value);
                         setResult(null);
+                        setIsAudioPlaying(false);
+                        if (window.location.pathname !== "/" && window.location.pathname !== "") {
+                          window.history.pushState(null, "", "/");
+                        }
                       }}
                       className={`w-full h-14 rounded-xl text-center text-sm font-sans focus:outline-hidden appearance-none cursor-pointer transition-all duration-353 px-2 ${
                         result && activeDecadeMood.decade === "1930s"
@@ -1610,8 +1628,14 @@ export default function App() {
                       placeholder="Year"
                       value={year}
                       onChange={(e) => {
+                        console.log("DATE_CHANGED_NO_REVEAL");
+                        userClickedRevealRef.current = false;
                         setYear(e.target.value);
                         setResult(null);
+                        setIsAudioPlaying(false);
+                        if (window.location.pathname !== "/" && window.location.pathname !== "") {
+                          window.history.pushState(null, "", "/");
+                        }
                       }}
                       min="1920"
                       max="2026"
@@ -1651,6 +1675,10 @@ export default function App() {
               <button
                 type="submit"
                 disabled={loading}
+                onClick={() => {
+                  console.log("MANUAL_REVEAL_CLICKED");
+                  userClickedRevealRef.current = true;
+                }}
                 className={`w-full h-14 font-extrabold text-[#ebe6dd] rounded-xl transition-all duration-500 flex items-center justify-center space-x-2 group cursor-pointer select-none disabled:opacity-75 disabled:cursor-wait ${
                   result && activeDecadeMood.decade === "1930s"
                     ? activeDecadeMood.btnClass
