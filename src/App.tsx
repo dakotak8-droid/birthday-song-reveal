@@ -590,8 +590,11 @@ function getDecadeMood(releaseYear?: number): DecadeMood {
 }
 
 // Helper function to format the Billboard Chart Week in a nostalgic music time capsule presentation
-const formatBillboardWeek = (chartDate: string | undefined): string => {
+const formatBillboardWeek = (chartDate: string | undefined, isFallback?: boolean): string => {
   if (!chartDate) return "";
+  if (isFallback) {
+    return `Representative Era Hit — ${chartDate}`;
+  }
   return `Billboard Week of ${chartDate}`;
 };
 
@@ -1701,7 +1704,13 @@ export default function App() {
             <span className={`inline-block w-2 h-2 rounded-full mr-1 ${
               result && activeDecadeMood.decade === "1930s" ? "bg-amber-500 animate-pulse-slow" : "bg-indigo-500 animate-pulse"
             }`}></span>
-            <span>{result && activeDecadeMood.decade === "1930s" ? "1930s Archive Reel Active" : "Billboard Retro Sync Active"}</span>
+            <span>
+              {result && activeDecadeMood.decade === "1930s"
+                ? "1930s Archive Reel Active"
+                : (result && (result.isFallback || result.source === "fallback"))
+                  ? "Nostalgic Archive Active"
+                  : "Billboard Retro Sync Active"}
+            </span>
           </div>
         </header>
 
@@ -1959,7 +1968,7 @@ export default function App() {
                       <div className="flex justify-between items-start">
                         <h2 className="text-2xl font-bold text-white tracking-tight leading-tight">{result.songTitle}</h2>
                         <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[9px] font-bold border border-amber-500/30 uppercase tracking-wider">
-                          #1 Hit
+                          {result.isFallback || result.source === "fallback" ? "Era Hit" : "#1 Hit"}
                         </span>
                       </div>
                       <p className="text-base text-indigo-300 font-mono">
@@ -2016,7 +2025,7 @@ export default function App() {
                     ? "gold-foil-text font-serif font-medium tracking-[0.14em]"
                     : `text-white ${activeDecadeMood.headingClass}`
                 }`}>
-                  The #1 Hit When I Arrived
+                  {result.isFallback || result.source === "fallback" ? "An Era Hit When I Arrived" : "The #1 Hit When I Arrived"}
                 </h1>
                 <h2 className={`text-xl md:text-2xl font-serif font-medium transition-all duration-500 ${
                   result && activeDecadeMood.decade === "1930s" ? "text-[#c5a880]/90 tracking-[0.06em]" : activeDecadeMood.accentClass
@@ -2024,10 +2033,14 @@ export default function App() {
                   Born on {result.userBirthdayFormatted}?
                 </h2>
                 <p className="text-sm md:text-base text-slate-300">
-                  The #1 Billboard song when I arrived was <strong className="text-white font-bold font-sans">“{result.songTitle}” by {result.artist}</strong>.
+                  {result.isFallback || result.source === "fallback" ? (
+                    <>A representative hit from this era was <strong className="text-white font-bold font-sans">“{result.songTitle}” by {result.artist}</strong>.</>
+                  ) : (
+                    <>The #1 Billboard song when I arrived was <strong className="text-white font-bold font-sans">“{result.songTitle}” by {result.artist}</strong>.</>
+                  )}
                 </p>
                 <p className="text-xs md:text-sm text-slate-400 font-mono tracking-wide">
-                  This result is based on the <strong className={`font-bold ${activeDecadeMood.accentClass}`}>{formatBillboardWeek(result.matchedChartWeek)}</strong>.
+                  This result is based on the <strong className={`font-bold ${activeDecadeMood.accentClass}`}>{formatBillboardWeek(result.matchedChartWeek, result.isFallback || result.source === "fallback")}</strong>.
                 </p>
                 <p className="text-sm text-slate-300 font-serif italic max-w-md mx-auto leading-relaxed pt-1">
                   My birthday has its own soundtrack — and apparently, it arrived with: “{result.emotionalSentence || "This was the sound echoing across America when my story began."}”
@@ -2197,7 +2210,7 @@ export default function App() {
                           <span className={`font-bold text-xs tracking-wide block ${
                             activeDecadeMood.decade === "1930s" ? "text-[#cca97b]" : activeDecadeMood.accentClass
                           }`}>
-                            {formatBillboardWeek(result.matchedChartWeek || "October 21, 1995")}
+                            {formatBillboardWeek(result.matchedChartWeek || "October 21, 1995", result.isFallback || result.source === "fallback")}
                           </span>
                         </div>
                       </div>
@@ -2282,7 +2295,11 @@ export default function App() {
                     What Was Happening in Music That Week?
                   </h2>
                   <p className="text-sm md:text-base text-slate-300 leading-relaxed font-sans font-normal">
-                    During the chart week of <strong>{result.matchedChartWeek}</strong>, the track <strong className="text-white">“{result.songTitle}”</strong> by <strong className="text-white">{result.artist}</strong> was the undisputed #1 song in America. It ruled radios across America.
+                    {result.isFallback || result.source === "fallback" ? (
+                      <>During the era around <strong>{result.matchedChartWeek}</strong>, the track <strong className="text-white">“{result.songTitle}”</strong> by <strong className="text-white">{result.artist}</strong> was a celebrated favorite in America. It filled radios across the nation.</>
+                    ) : (
+                      <>During the chart week of <strong>{result.matchedChartWeek}</strong>, the track <strong className="text-white">“{result.songTitle}”</strong> by <strong className="text-white">{result.artist}</strong> was the undisputed #1 song in America. It ruled radios across America.</>
+                    )}
                   </p>
                 </div>
 
@@ -2825,7 +2842,7 @@ export default function App() {
                           <div className={`text-[7.5px] md:text-[8px] font-mono uppercase tracking-[0.18em] pt-1.5 max-w-xs mx-auto text-center border-t transition-all duration-300 ${
                             result && activeDecadeMood.decade === "1930s" ? `${activeThemeConfig.accentBorder} ${activeThemeConfig.accent} font-medium` : "border-white/[0.03] text-slate-500"
                           }`}>
-                            {formatBillboardWeek(result.matchedChartWeek)}
+                            {formatBillboardWeek(result.matchedChartWeek, result.isFallback || result.source === "fallback")}
                           </div>
                         </div>
 
@@ -3206,7 +3223,7 @@ export default function App() {
                     <div className={`text-[9px] font-mono uppercase tracking-[0.2em] pt-1.5 transition-all duration-300 ${
                       result && activeDecadeMood.decade === "1930s" ? `${activeThemeConfig.accentBorder} ${activeThemeConfig.accent} font-medium` : "text-slate-500"
                     }`}>
-                      {formatBillboardWeek(result.matchedChartWeek)}
+                      {formatBillboardWeek(result.matchedChartWeek, result.isFallback || result.source === "fallback")}
                     </div>
                   </div>
 

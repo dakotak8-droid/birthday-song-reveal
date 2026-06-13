@@ -891,16 +891,405 @@ init().catch((err) => {
 
 export default app;
 
+const FALLBACK_SONGS_BY_DECADE: Record<string, Array<{
+  songTitle: string;
+  artist: string;
+  genre: string;
+  albumCoverDescription: string;
+  spotifyQuery: string;
+  emotionalSentence: string;
+  movieTitle: string;
+  movieDescription: string;
+  tvShowTitle: string;
+  tvShowDescription: string;
+  culturalSnapshot: string;
+}>> = {
+  "1940s": [
+    {
+      songTitle: "Sentimental Journey",
+      artist: "Les Brown & Doris Day",
+      genre: "Big Band / Swing / Traditional Pop",
+      albumCoverDescription: "A gorgeous printed cardboard sleeve displaying a polished big band orchestral outline on warm aged parchment print background.",
+      spotifyQuery: "Les Brown Doris Day Sentimental Journey",
+      emotionalSentence: "Dreamy orchestral horn ensembles and soft woodwinds warmed heartland radios the week my story began.",
+      movieTitle: "Casablanca",
+      movieDescription: "Luminous black-and-white theatrical highlights and romantic wartime intrigue filled velvet screen halls.",
+      tvShowTitle: "The Radio Reader's Digest",
+      tvShowDescription: "Cozy home circles gathered close dynamically around tall wooden tube-radio consoles for live theater readings.",
+      culturalSnapshot: "Swing dance ballrooms, classical felt hats, tailored double-breasted suits, and early lacquer recordings."
+    },
+    {
+      songTitle: "In the Mood",
+      artist: "Glenn Miller",
+      genre: "Big Band / Swing",
+      albumCoverDescription: "A glossy retro single sleeve celebrating brass section icons with elegant gold borders and vintage label details.",
+      spotifyQuery: "Glenn Miller In the Mood",
+      emotionalSentence: "Unforgettable jazzy saxophone waves prompted lively, joyful dancing as communities celebrated new beginnings.",
+      movieTitle: "Citizen Kane",
+      movieDescription: "Masterful cinematic shadows and dramatic radio stories captured the artistic curiosity of global filmgoers.",
+      tvShowTitle: "The Jack Benny Program",
+      tvShowDescription: "Lighthearted comedy acts broadcasted directly into homes over crackle-rich vacuum-tube audio frequencies.",
+      culturalSnapshot: "Polished brass instruments, classic wingtip shoes, nostalgic post-war optimism, and 78 RPM record turntables."
+    },
+    {
+      songTitle: "White Christmas",
+      artist: "Bing Crosby",
+      genre: "Traditional Pop / Vocal",
+      albumCoverDescription: "An elegant festive record jacket showing gold-trimmed calligraphy font on a deep pine green sleeve texture.",
+      spotifyQuery: "Bing Crosby White Christmas",
+      emotionalSentence: "Warm, velvet vocal frequencies filled quiet winter rooms with peaceful comforting nostalgia.",
+      movieTitle: "It's a Wonderful Life",
+      movieDescription: "Stirring, emotional stories of family resilience and friendship warmed winter cinema screens.",
+      tvShowTitle: "The Fred Allen Show",
+      tvShowDescription: "Intelligent radio humors and live sound-effect theaters entertained families sitting on classic woven rugs.",
+      culturalSnapshot: "Cozy firesides, long wool trench coats, classic postcards, and cherished family radio programs."
+    }
+  ],
+  "1950s": [
+    {
+      songTitle: "Jailhouse Rock",
+      artist: "Elvis Presley",
+      genre: "Rock & Roll",
+      albumCoverDescription: "An energetic rockabilly vinyl jacket featuring bold red typography and high-contrast performance outlines.",
+      spotifyQuery: "Elvis Presley Jailhouse Rock",
+      emotionalSentence: "A revolutionary guitar-heavy rock and roll sound shattered the radios when I entered the world.",
+      movieTitle: "Singin' in the Rain",
+      movieDescription: "Dazzling dynamic tap-dancers and joyful musical comedy lit up mid-century cinema screens.",
+      tvShowTitle: "I Love Lucy",
+      tvShowDescription: "Millions of families tuned in to cozy tube televisions for legendary black-and-white comedic sitcom antics.",
+      culturalSnapshot: "Retro jukebox diners, leather jackets, neon milkshake signs, and classic chrome-finned automobiles."
+    },
+    {
+      songTitle: "Johnny B. Goode",
+      artist: "Chuck Berry",
+      genre: "Rock & Roll",
+      albumCoverDescription: "A bright retro record sleeve capturing a dynamic hollow-body guitar sketch on textured canary-yellow paper.",
+      spotifyQuery: "Chuck Berry Johnny B. Goode",
+      emotionalSentence: "Unparalleled electric guitar riffs electrified the national airwaves, defining the dawn of rock culture.",
+      movieTitle: "Rebel Without a Cause",
+      movieDescription: "A gripping drama of teenage independence and modern style defined the screens of drive-in theaters.",
+      tvShowTitle: "The Ed Sullivan Show",
+      tvShowDescription: "Sunday evening variety theaters captivated living rooms with thrilling live performances from New York.",
+      culturalSnapshot: "Polished chrome hubcaps, dynamic sock hops, ducktail hairstyles, and portable transistor radios."
+    },
+    {
+      songTitle: "What'd I Say",
+      artist: "Ray Charles",
+      genre: "R&B / Soul",
+      albumCoverDescription: "A warm jazz-centric cardboard jacket showing an artistic piano key graphic in deep blue and indigo.",
+      spotifyQuery: "Ray Charles What'd I Say",
+      emotionalSentence: "Brassy horn sections and soulful call-and-response dialogues introduced a powerful new musical energy.",
+      movieTitle: "Rear Window",
+      movieDescription: "Immersive suspense cinema and high-fashion style kept mystery enthusiasts gripping theater armrests.",
+      tvShowTitle: "American Bandstand",
+      tvShowDescription: "Enthusiastic daily teenage dance circles broadcasted live, showcasing the latest national records.",
+      culturalSnapshot: "Sleek dark sunglasses, polished grand pianos, vinyl 45 singles, and high-fidelity home record players."
+    }
+  ],
+  "1960s": [
+    {
+      songTitle: "Respect",
+      artist: "Aretha Franklin",
+      genre: "Soul / R&B",
+      albumCoverDescription: "A classic vinyl record sleeve with iconic soul-music artwork, retro warm tones.",
+      spotifyQuery: "Aretha Franklin Respect",
+      emotionalSentence: "Motown and soul filled American radios the week my story began.",
+      movieTitle: "The Graduate",
+      movieDescription: "Velvet theater seats glowed as classic coming-of-age cinema swept the national screen.",
+      tvShowTitle: "The Andy Griffith Show",
+      tvShowDescription: "Families leaned closer to warm, humming television sets to visit Mayberry together.",
+      culturalSnapshot: "The snap of stylish plastic sunglasses and emerging portable tape decks redefined youth rebellion."
+    },
+    {
+      songTitle: "I Want to Hold Your Hand",
+      artist: "The Beatles",
+      genre: "Pop / Rock",
+      albumCoverDescription: "A vibrant sixties-style photograph sleeve with bold yellow lettering and retro collar-suit graphics.",
+      spotifyQuery: "The Beatles I Want to Hold Your Hand",
+      emotionalSentence: "Spirited guitar pop and clean harmonies of the British Invasion swept global airwaves when I entered.",
+      movieTitle: "A Hard Day's Night",
+      movieDescription: "High-energy black-and-white musical comedy captured the sheer joy and mania of peak pop culture.",
+      tvShowTitle: "The Twilight Zone",
+      tvShowDescription: "Mysterious sci-fi twists captivated living rooms during late-night hours with philosophical intrigue.",
+      culturalSnapshot: "Mod fashion, collarless jackets, round sunglasses, and portable vinyl carrying boxes."
+    },
+    {
+      songTitle: "My Girl",
+      artist: "The Temptations",
+      genre: "Motown / Soul / R&B",
+      albumCoverDescription: "A gorgeous vintage purple-tinted Motown sleeve featuring clean group alignment under metallic font.",
+      spotifyQuery: "The Temptations My Girl",
+      emotionalSentence: "Flawless vocal harmonies and smooth brass lines established an everlasting romantic sound for the era.",
+      movieTitle: "Mary Poppins",
+      movieDescription: "Spectacular hand-drawn animation combined with live action, charming audiences worldwide in local theaters.",
+      tvShowTitle: "The Dick Van Dyke Show",
+      tvShowDescription: "Smart, sophisticated urban apartment comedy entertained living rooms with delightful physical timing.",
+      culturalSnapshot: "Polished suits, coordinated dance choreography, classic turntables, and bright soul music festivals."
+    }
+  ],
+  "1970s": [
+    {
+      songTitle: "Stayin' Alive",
+      artist: "Bee Gees",
+      genre: "Disco / Pop",
+      albumCoverDescription: "Gleaming dance floor lights, vibrant retro shirts, classic 70s record center sticker.",
+      spotifyQuery: "Bee Gees Stayin Alive",
+      emotionalSentence: "Disco rhythms echoed across neon dance floors when I arrived.",
+      movieTitle: "Star Wars",
+      movieDescription: "Fresh popcorn scents and endless queues for galaxy-spanning starship adventures filled cinemas.",
+      tvShowTitle: "Happy Days",
+      tvShowDescription: "Cozy living rooms pulsed with wooden TV consoles and high-spirited jukebox diner laughs.",
+      culturalSnapshot: "Spinning mirrorballs, wide collars, and the heavy bass thrum of street stereos liberated sidewalks."
+    },
+    {
+      songTitle: "Superstition",
+      artist: "Stevie Wonder",
+      genre: "Funk / Soul",
+      albumCoverDescription: "A sleek seventies sleeve showing warm golden concentric soundwaves expanding from a dark background.",
+      spotifyQuery: "Stevie Wonder Superstition",
+      emotionalSentence: "Fascinating clavinet grooves and soulful keyboard mastery dominated FM radios.",
+      movieTitle: "The Godfather",
+      movieDescription: "Gripping dramatic storytelling and cinematic mastery rewrote box office scales in local theaters.",
+      tvShowTitle: "All in the Family",
+      tvShowDescription: "Lively family living room banter addressed major social themes with raw television honesty.",
+      culturalSnapshot: "Earthy brown corduroy, vintage analog synthesizers, platform heels, and chunky headphones."
+    },
+    {
+      songTitle: "Dancing Queen",
+      artist: "ABBA",
+      genre: "Europop / Disco",
+      albumCoverDescription: "A bright, shimmering sky-blue record sleeve filled with glamorous typography and satin-suit illustrations.",
+      spotifyQuery: "ABBA Dancing Queen",
+      emotionalSentence: "Enchanting melodic pop hooks and sweeping piano glissandos brought immense joy to radios.",
+      movieTitle: "Saturday Night Fever",
+      movieDescription: "Dazzling illuminated neon clubs and iconic dance steps captured the disco pulse of moviegoers.",
+      tvShowTitle: "The Muppet Show",
+      tvShowDescription: "Vibrant theatrical puppet comedies and celebrity guests delighted multi-generational homes.",
+      culturalSnapshot: "Bell-bottom jeans, glitter makeup, high-energy roller rinks, and cassette tape decks."
+    }
+  ],
+  "1980s": [
+    {
+      songTitle: "Billie Jean",
+      artist: "Michael Jackson",
+      genre: "Synthpop / Funk",
+      albumCoverDescription: "A sleek black vinyl jacket with silver typography and retro synth wave vibes.",
+      spotifyQuery: "Michael Jackson Billie Jean",
+      emotionalSentence: "This historic anthem was ruling living rooms across America when I arrived.",
+      movieTitle: "Back to the Future",
+      movieDescription: "A stainless-steel DeLorean and burning tire tracks captured the neon imagination of theatergoers.",
+      tvShowTitle: "The Cosby Show",
+      tvShowDescription: "Thursday nights belonged to family sitcom comfort and the soft static hum of color tube screens.",
+      culturalSnapshot: "Glorious neon fashion, synth pop wave blares, and the early glow of cable MTV screens."
+    },
+    {
+      songTitle: "Sweet Child O' Mine",
+      artist: "Guns N' Roses",
+      genre: "Hard Rock",
+      albumCoverDescription: "A bold, rebellious illustrated sleeve featuring iconic gothic calligraphy on an ink-black background.",
+      spotifyQuery: "Guns N' Roses Sweet Child O' Mine",
+      emotionalSentence: "Legendary electric guitar intros and soaring rock vocals energized FM radio channels.",
+      movieTitle: "E.T. the Extra-Terrestrial",
+      movieDescription: "A beautiful, heartwarming sci-fi story of friendship under shining bicycle silhouettes filled cinemas.",
+      tvShowTitle: "The Golden Girls",
+      tvShowDescription: "Lively kitchen table humor and endearing friendships brought laughter to evening television hours.",
+      culturalSnapshot: "Denim jackets, voluminous hairstyles, cassette walkmans, and graphic concert t-shirts."
+    },
+    {
+      songTitle: "Take On Me",
+      artist: "a-ha",
+      genre: "Synthpop",
+      albumCoverDescription: "A charcoal rotoscope cell-shaded graphic print sleeve with sleek modern typography.",
+      spotifyQuery: "a-ha Take On Me",
+      emotionalSentence: "Vibrant electronic synthesizers and sweeping pop falsettos defined the vibrant energy of the week.",
+      movieTitle: "Raiders of the Lost Ark",
+      movieDescription: "Thrilling archaeological expeditions and whip-cracking action pulled massive audiences into seats.",
+      tvShowTitle: "Miami Vice",
+      tvShowDescription: "Sleek pastel suits and innovative electronic music loops revolutionized television drama looks.",
+      culturalSnapshot: "Pastel blazers, digital watches, arcade machines, and high-fidelity video cassette recorders (VCRs)."
+    }
+  ],
+  "1990s": [
+    {
+      songTitle: "Smells Like Teen Spirit",
+      artist: "Nirvana",
+      genre: "Grunge / Alternative Rock",
+      albumCoverDescription: "A dynamic underwater blue record sleeve capturing raw, authentic flannel guitar culture.",
+      spotifyQuery: "Nirvana Smells Like Teen Spirit",
+      emotionalSentence: "Flannel guitar anthems and independent tapes filled the stereos when I entered the world.",
+      movieTitle: "Jurassic Park",
+      movieDescription: "Prehistoric giants rumbled under state-of-the-art surround sound, pulling immense crowds into theater seats.",
+      tvShowTitle: "Seinfeld",
+      tvShowDescription: "The comforting hum of VHS tape recordings and sarcastic banter over coffee in retro diners.",
+      culturalSnapshot: "Analog tapes, neon windbreakers, and the crackle-beep of early dial-up internet carved our social landscape."
+    },
+    {
+      songTitle: "Fantasy",
+      artist: "Mariah Carey",
+      genre: "Pop / R&B",
+      albumCoverDescription: "A pastel record sleeve featuring elegant bright fonts and optimistic pop-star photography.",
+      spotifyQuery: "Mariah Carey Fantasy",
+      emotionalSentence: "A blissful blend of uplifting pop vocals and sweet hip-hop loops floated in the autumn breeze.",
+      movieTitle: "Titanic",
+      movieDescription: "Monumental historic scale and tragic romance drew endless crying crowds into cinema complexes.",
+      tvShowTitle: "Friends",
+      tvShowDescription: "Cozy coffeehouse gatherings and relatable urban friendships defined the weekly schedule of households.",
+      culturalSnapshot: "Baggy denim pants, custom CD players, early cellular phones, and nostalgic retro pop hooks."
+    },
+    {
+      songTitle: "I Want It That Way",
+      artist: "Backstreet Boys",
+      genre: "Pop / Boyband",
+      albumCoverDescription: "A bright white minimalist sleeve featuring five stylish pop stars under a futuristic sans-serif title.",
+      spotifyQuery: "Backstreet Boys I Want It That Way",
+      emotionalSentence: "Polished harmonies and classic pop progressions dominated national radios, uniting listeners.",
+      movieTitle: "Toy Story",
+      movieDescription: "Innovative, heartwarming computer-animated characters changed movie history for millions of families.",
+      tvShowTitle: "The Fresh Prince of Bel-Air",
+      tvShowDescription: "Hilarious, energetic family sitcoms highlighted the transition to modern urban style on TV sets.",
+      culturalSnapshot: "Oversized windbreakers, pager devices, pocket CD carrying cases, and printed pop posters."
+    }
+  ],
+  "2000s": [
+    {
+      songTitle: "Crazy in Love",
+      artist: "Beyoncé ft. Jay-Z",
+      genre: "R&B / Hip-Hop",
+      albumCoverDescription: "Glittering metallic backgrounds, horns playing, and vibrant modern luxury urban style.",
+      spotifyQuery: "Beyonce Crazy in Love",
+      emotionalSentence: "A dazzling vocal revolution and brassy horns dominated the week I arrived.",
+      movieTitle: "Avatar",
+      movieDescription: "Fluorescent 3D glasses and deep orchestral soundscapes transported massive crowds into foreign luminous worlds.",
+      tvShowTitle: "The Office",
+      tvShowDescription: "Late-night laughter echoed around the flickering blue hues of humorous office mockumentaries.",
+      culturalSnapshot: "The early tactile chic of folding phones, custom MP3 play rings, and glossy social forums."
+    },
+    {
+      songTitle: "Toxic",
+      artist: "Britney Spears",
+      genre: "Dance-Pop",
+      albumCoverDescription: "A futuristic metallic blue backdrop featuring sophisticated graphic vector sparkles and sleek title typography.",
+      spotifyQuery: "Britney Spears Toxic",
+      emotionalSentence: "Brilliant sci-fi synths and energetic violin loops redefined pop music boundaries across the nation.",
+      movieTitle: "The Dark Knight",
+      movieDescription: "Atmospheric, psychological superhero masterpieces redefined the creative capacities of cinema theaters.",
+      tvShowTitle: "Lost",
+      tvShowDescription: "Fascinating survival mysteries and complex island puzzle timelines sparked weekly theories in living rooms.",
+      culturalSnapshot: "Gleaming silver iPods, digital file expansions, initial social media logins, and futuristic style."
+    },
+    {
+      songTitle: "Hey Ya!",
+      artist: "Outkast",
+      genre: "Funk / Hip-Hop",
+      albumCoverDescription: "A bright, multi-colored retro-futuristic jacket with vibrant green accents and quirky polaroid collage frames.",
+      spotifyQuery: "Outkast Hey Ya!",
+      emotionalSentence: "An incomparable energetic retro-soul dance explosion ruled the radios with joy.",
+      movieTitle: "Finding Nemo",
+      movieDescription: "Luminous, beautiful deep-sea ocean journeys captured the imaginations of cinema audiences.",
+      tvShowTitle: "American Idol",
+      tvShowDescription: "Weekly interactive live music competitions united homes around early social voting screens.",
+      culturalSnapshot: "Instant camera frames, vintage neon shades, portable digital accessories, and quirky pop styles."
+    }
+  ],
+  "2010s": [
+    {
+      songTitle: "Rolling in the Deep",
+      artist: "Adele",
+      genre: "Soul / Pop / Indie",
+      albumCoverDescription: "A black-and-white minimalist record silhouette capturing the raw warmth of modern vinyl revivals.",
+      spotifyQuery: "Adele Rolling in the Deep",
+      emotionalSentence: "Deep emotional vocals and heavy, rhythmic stomping beats echoed across FM radio waves.",
+      movieTitle: "Inception",
+      movieDescription: "Intricate, gravity-defying dream architectures had moviegoers whispering theories in local theater lobbies.",
+      tvShowTitle: "Game of Thrones",
+      tvShowDescription: "Epic, cinematic fantasy struggles had millions of homes holding their breath on Sunday evenings.",
+      culturalSnapshot: "Sleek smartphones, custom music apps, coffeehouse workspace aesthetics, and retro digital filters."
+    },
+    {
+      songTitle: "Uptown Funk",
+      artist: "Mark Ronson ft. Bruno Mars",
+      genre: "Funk / Pop",
+      albumCoverDescription: "A vibrant retro-styled sleeve capturing a sleek pink sunglasses silhouette on high-gloss cardstock.",
+      spotifyQuery: "Mark Ronson Bruno Mars Uptown Funk",
+      emotionalSentence: "Incredible horns and vintage bass grooves dominated global radio waves with high-spirited energy.",
+      movieTitle: "The Avengers",
+      movieDescription: "Colossal superhero assemblies and incredible digital effects broke all-time box office records.",
+      tvShowTitle: "Stranger Things",
+      tvShowDescription: "Charming, synthwave-rich tributes to classic eighties adventures captivated binge-watching homes.",
+      culturalSnapshot: "Sleek touch screens, social media video shares, craft coffee houses, and modern retro revivals."
+    },
+    {
+      songTitle: "Shape of You",
+      artist: "Ed Sheeran",
+      genre: "Pop / Tropical House",
+      albumCoverDescription: "A minimalist matte blue cover featuring a bold orange mathematical symbol under clean white text.",
+      spotifyQuery: "Ed Sheeran Shape of You",
+      emotionalSentence: "Catchy marimba rhythms and acoustic pop hooks floated from speakers in every shop and car.",
+      movieTitle: "La La Land",
+      movieDescription: "Vibrant, nostalgic musicals set in modern Los Angeles painted local screen theaters with color.",
+      tvShowTitle: "Black Mirror",
+      tvShowDescription: "Chilling, thought-provoking sci-fi stories about digital futures sparked massive national discussions.",
+      culturalSnapshot: "Wireless headphones, smart voice assistants, digital streaming playlists, and neon loft lights."
+    }
+  ],
+  "2020s": [
+    {
+      songTitle: "Blinding Lights",
+      artist: "The Weeknd",
+      genre: "Synthwave / Pop",
+      albumCoverDescription: "A cinematic red-hued evening photograph on gloss sleeve paper under neon eighties-style text.",
+      spotifyQuery: "The Weeknd Blinding Lights",
+      emotionalSentence: "High-octane electronic drum machines and nostalgic visual vibes defined our modern airwaves.",
+      movieTitle: "Everything Everywhere All at Once",
+      movieDescription: "Eye-popping, heartwarming multiversal storytelling captured the creative spirit of modern cinemas.",
+      tvShowTitle: "Ted Lasso",
+      tvShowDescription: "Heartwarming sports humor and infectious positivity offered comforting relief to homes during quiet evenings.",
+      culturalSnapshot: "Sleek wireless earbuds, digital home setups, instant stream releases, and neon interior lamps."
+    },
+    {
+      songTitle: "As It Was",
+      artist: "Harry Styles",
+      genre: "Indie Pop / New Wave",
+      albumCoverDescription: "An artistic minimalist sleeve showing a bright pastel room outline with clean, spacious layout styles.",
+      spotifyQuery: "Harry Styles As It Was",
+      emotionalSentence: "Glittering synthesizer bells and bouncy, nostalgic beats accompanied the world during a time of change.",
+      movieTitle: "Barbie",
+      movieDescription: "A brilliant pink cinematic spectacle filled theaters with massive crowds dressed in vibrant monochrome.",
+      tvShowTitle: "Succession",
+      tvShowDescription: "Tense corporate family dynamics and satirical drama kept fans debating on social mediums.",
+      culturalSnapshot: "Chic vintage record revivals, social video reels, oversized blazers, and aesthetic cozy setups."
+    },
+    {
+      songTitle: "Flowers",
+      artist: "Miley Cyrus",
+      genre: "Pop / Disco-Funk",
+      albumCoverDescription: "A striking high-contrast photographic cover capturing glamorous sunglasses under metallic gold text.",
+      spotifyQuery: "Miley Cyrus Flowers",
+      emotionalSentence: "An uplifting anthem of self-empowerment and soft nu-disco basslines ruled the airwaves.",
+      movieTitle: "Oppenheimer",
+      movieDescription: "Stunning historic spectacles and loud orchestral soundscapes drew huge crowds to screen theaters.",
+      tvShowTitle: "The Last of Us",
+      tvShowDescription: "Powerful, emotional survival stories captured hearts, creating a weekly Sunday evening ritual.",
+      culturalSnapshot: "Nu-disco grooves, workout playlists, smart digital devices, and home-decor aesthetics."
+    }
+  ]
+};
+
 function getFallbackNostalgia(date: string) {
   const { userBirthdayFormatted, matchedChartWeek, chartYear } = getChartDates(date);
   
   if (chartYear < 1940) {
-    return getHistorical1930sRecord(date, matchedChartWeek);
+    return {
+      ...getHistorical1930sRecord(date, matchedChartWeek),
+      isFallback: true,
+      source: "fallback"
+    };
   }
   
   const parts = date.split("-");
-  const userMonth = parseInt(parts[1]);
-  const userDay = parseInt(parts[2]);
+  const userYear = parseInt(parts[0], 10);
+  const userMonth = parseInt(parts[1], 10);
+  const userDay = parseInt(parts[2], 10);
 
   let celebrityName = "No iconic birthday match discovered";
   let celebrityDescription = "A distinctive day in history, waiting for my unique story to unfold.";
@@ -939,105 +1328,52 @@ function getFallbackNostalgia(date: string) {
     celebrityBirthDay = 18;
   }
 
-  const baseResult = (() => {
-    if (chartYear < 1940) {
-      return {
-        songTitle: "Cheek to Cheek",
-        artist: "Fred Astaire",
-        releaseYear: chartYear,
-        genre: "Golden Age Jazz / Orchestral",
-        billboardRank: "No. 1 Chart Hit of the Era",
-        albumCoverDescription: "An archival lacquer disc with a warm gold typography label on a soft textured fiber sleeve.",
-        spotifyUrl: `https://open.spotify.com/search/${encodeURIComponent("Fred Astaire Cheek to Cheek")}`,
-        emotionalSentence: "Radio orchestras softened uncertain evenings the week my story began.",
-        movieTitle: "The Wizard of Oz",
-        movieDescription: "Velvet theaters glowed beyond the city rain as glowing technicolor swept the silver screen.",
-        tvShowTitle: "The Jack Benny Program",
-        tvShowDescription: "Families leaned closer to warm, glowing vacuum-tube radios in quiet candlelit living rooms.",
-        culturalSnapshot: "Polished brass instruments, classic felt fedoras, and the warm vinyl dust crackle of 78 RPM records."
-      };
-    } else if (chartYear < 1970) {
-      return {
-        songTitle: "Respect",
-        artist: "Aretha Franklin",
-        releaseYear: chartYear,
-        genre: "Soul / R&B",
-        billboardRank: "#1 Billboard Hot 100",
-        albumCoverDescription: "A classic vinyl record sleeve with iconic soul-music artwork, retro warm tones.",
-        spotifyUrl: `https://open.spotify.com/search/${encodeURIComponent("Aretha Franklin Respect")}`,
-        emotionalSentence: "Motown and soul filled American radios the week my story began.",
-        movieTitle: "The Graduate",
-        movieDescription: "Velvet theater seats glowed as classic coming-of-age cinema swept the national screen.",
-        tvShowTitle: "The Andy Griffith Show",
-        tvShowDescription: "Families leaned closer to warm, humming television sets to visit Mayberry together.",
-        culturalSnapshot: "The snap of stylish plastic sunglasses and emerging portable tape decks redefined youth rebellion."
-      };
-    } else if (chartYear < 1980) {
-      return {
-        songTitle: "Stayin' Alive",
-        artist: "Bee Gees",
-        releaseYear: chartYear,
-        genre: "Disco / Pop",
-        billboardRank: "#1 Billboard Hot 100",
-        albumCoverDescription: "Gleaming dance floor lights, vibrant retro shirts, classic 70s record center sticker.",
-        spotifyUrl: `https://open.spotify.com/search/${encodeURIComponent("Bee Gees Stayin Alive")}`,
-        emotionalSentence: "Disco rhythms echoed across neon dance floors when I arrived.",
-        movieTitle: "Star Wars",
-        movieDescription: "Fresh popcorn scents and endless queues for galaxy-spanning starship adventures filled cinemas.",
-        tvShowTitle: "Happy Days",
-        tvShowDescription: "Cozy living rooms pulsed with wooden TV consoles and high-spirited jukebox diner laughs.",
-        culturalSnapshot: "Spinning mirrorballs, wide collars, and the heavy bass thrum of street stereos liberated sidewalks."
-      };
-    } else if (chartYear < 1990) {
-      return {
-        songTitle: "Billie Jean",
-        artist: "Michael Jackson",
-        releaseYear: chartYear,
-        genre: "Synthpop / Funk",
-        billboardRank: "#1 Billboard Hot 100",
-        albumCoverDescription: "A sleek black vinyl jacket with silver typography and retro synth wave vibes.",
-        spotifyUrl: `https://open.spotify.com/search/${encodeURIComponent("Michael Jackson Billie Jean")}`,
-        emotionalSentence: "This historic anthem was ruling living rooms across America when I arrived.",
-        movieTitle: "Back to the Future",
-        movieDescription: "A stainless-steel DeLorean and burning tire tracks captured the neon imagination of theatergoers.",
-        tvShowTitle: "The Cosby Show",
-        tvShowDescription: "Thursday nights belonged to family sitcom comfort and the soft static hum of color tube screens.",
-        culturalSnapshot: "Glorious neon fashion, synth pop wave blares, and the early glow of cable MTV screens."
-      };
-    } else if (chartYear < 2000) {
-      return {
-        songTitle: "Smells Like Teen Spirit",
-        artist: "Nirvana",
-        releaseYear: chartYear,
-        genre: "Grunge / Alternative Rock",
-        billboardRank: "#1 Billboard Hot 100",
-        albumCoverDescription: "A dynamic underwater blue record sleeve capturing raw, authentic flannel guitar culture.",
-        spotifyUrl: `https://open.spotify.com/search/${encodeURIComponent("Nirvana Smells Like Teen Spirit")}`,
-        emotionalSentence: "Flannel guitar anthems and independent tapes filled the stereos when I entered the world.",
-        movieTitle: "Jurassic Park",
-        movieDescription: "Prehistoric giants rumbled under state-of-the-art surround sound, pulling immense crowds into theater seats.",
-        tvShowTitle: "Seinfeld",
-        tvShowDescription: "The comforting hum of VHS tape recordings and sarcastic banter over coffee in retro diners.",
-        culturalSnapshot: "Analog tapes, neon windbreakers, and the crackle-beep of early dial-up internet carved our social landscape."
-      };
-    } else {
-      return {
-        songTitle: "Crazy in Love",
-        artist: "Beyoncé ft. Jay-Z",
-        releaseYear: chartYear,
-        genre: "R&B / Hip-Hop",
-        billboardRank: "#1 Billboard Hot 100",
-        albumCoverDescription: "Glittering metallic backgrounds, horns playing, and vibrant modern luxury urban style.",
-        spotifyUrl: `https://open.spotify.com/search/${encodeURIComponent("Beyonce Crazy in Love")}`,
-        emotionalSentence: "A dazzling vocal revolution and brassy horns dominated the week I arrived.",
-        movieTitle: "Avatar",
-        movieDescription: "Fluorescent 3D glasses and deep orchestral soundscapes transported massive crowds into foreign luminous worlds.",
-        tvShowTitle: "The Office",
-        tvShowDescription: "Late-night laughter echoed around the flickering blue hues of humorous office mockumentaries.",
-        culturalSnapshot: "The early tactile chic of folding phones, custom MP3 play rings, and glossy social forums."
-      };
-    }
-  })();
+  // Determine the decade
+  let decadeStr = "2020s";
+  if (chartYear < 1950) {
+    decadeStr = "1940s";
+  } else if (chartYear < 1960) {
+    decadeStr = "1950s";
+  } else if (chartYear < 1970) {
+    decadeStr = "1960s";
+  } else if (chartYear < 1980) {
+    decadeStr = "1970s";
+  } else if (chartYear < 1990) {
+    decadeStr = "1980s";
+  } else if (chartYear < 2000) {
+    decadeStr = "1990s";
+  } else if (chartYear < 2010) {
+    decadeStr = "2000s";
+  } else if (chartYear < 2020) {
+    decadeStr = "2010s";
+  } else {
+    decadeStr = "2020s";
+  }
+
+  const decadeSongs = FALLBACK_SONGS_BY_DECADE[decadeStr] || FALLBACK_SONGS_BY_DECADE["2020s"];
+  
+  // Deterministic seed utilizing year + month + day
+  const seed = userYear + userMonth + userDay;
+  const songIndex = seed % decadeSongs.length;
+  const selectedSong = decadeSongs[songIndex];
+
+  const baseResult = {
+    songTitle: selectedSong.songTitle,
+    artist: selectedSong.artist,
+    releaseYear: chartYear,
+    genre: selectedSong.genre,
+    billboardRank: "Representative Era Hit",
+    albumCoverDescription: selectedSong.albumCoverDescription,
+    spotifyUrl: `https://open.spotify.com/search/${encodeURIComponent(selectedSong.spotifyQuery)}`,
+    emotionalSentence: selectedSong.emotionalSentence,
+    movieTitle: selectedSong.movieTitle,
+    movieDescription: selectedSong.movieDescription,
+    tvShowTitle: selectedSong.tvShowTitle,
+    tvShowDescription: selectedSong.tvShowDescription,
+    culturalSnapshot: selectedSong.culturalSnapshot,
+    isFallback: true,
+    source: "fallback"
+  };
 
   return {
     ...baseResult,
