@@ -1161,34 +1161,6 @@ export default function App() {
     setError(null);
   }, [month, day, year]);
 
-  // Dynamic refresh when birth date inputs change after initial reveal
-  useEffect(() => {
-    if (!result) return;
-    if (!month || !day || !year) return;
-
-    const numericYear = parseInt(year, 10);
-    const numericMonth = parseInt(month, 10);
-    const numericDay = parseInt(day, 10);
-
-    if (isNaN(numericYear) || numericYear < 1920 || numericYear > 2026) return;
-
-    const testDate = new Date(numericYear, numericMonth - 1, numericDay);
-    if (testDate.getFullYear() !== numericYear || testDate.getMonth() !== numericMonth - 1 || testDate.getDate() !== numericDay) return;
-
-    const formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-
-    // Avoid duplicate queries if the result already matches the inputs
-    if (result.userBirthMonth === numericMonth && result.userBirthDay === numericDay && result.releaseYear === numericYear) {
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      fetchDateReveal(formattedDate);
-    }, 250); // Small debounce
-
-    return () => clearTimeout(timer);
-  }, [month, day, year, result]);
-
   // Sync to local storage - functional variant to protect stale closures
   const saveToHistory = (newResult: NostalgiaResult, formattedDate: string) => {
     const searchId = btoa(formattedDate);
@@ -1587,7 +1559,10 @@ export default function App() {
                   <div className="relative">
                     <select
                       value={month}
-                      onChange={(e) => setMonth(e.target.value)}
+                      onChange={(e) => {
+                        setMonth(e.target.value);
+                        setResult(null);
+                      }}
                       className={`w-full h-14 rounded-xl text-center text-sm font-sans focus:outline-hidden appearance-none cursor-pointer transition-all duration-353 text-ellipsis overflow-hidden whitespace-nowrap px-2 ${
                         result && activeDecadeMood.decade === "1930s"
                           ? "bg-[#120f0d]/95 border border-[#3d3126] text-amber-100/90 focus:border-[#c5a880]/50 hover:bg-[#191410]"
@@ -1609,7 +1584,10 @@ export default function App() {
                   <div className="relative">
                     <select
                       value={day}
-                      onChange={(e) => setDay(e.target.value)}
+                      onChange={(e) => {
+                        setDay(e.target.value);
+                        setResult(null);
+                      }}
                       className={`w-full h-14 rounded-xl text-center text-sm font-sans focus:outline-hidden appearance-none cursor-pointer transition-all duration-353 px-2 ${
                         result && activeDecadeMood.decade === "1930s"
                           ? "bg-[#120f0d]/95 border border-[#3d3126] text-amber-100/90 focus:border-[#c5a880]/50 hover:bg-[#191410]"
@@ -1631,7 +1609,10 @@ export default function App() {
                       type="number"
                       placeholder="Year"
                       value={year}
-                      onChange={(e) => setYear(e.target.value)}
+                      onChange={(e) => {
+                        setYear(e.target.value);
+                        setResult(null);
+                      }}
                       min="1920"
                       max="2026"
                       className={`w-full h-14 rounded-xl text-center text-sm font-sans focus:outline-hidden transition-all duration-353 px-2 ${
