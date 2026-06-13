@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 
@@ -834,6 +833,7 @@ app.get("/birthday-song/:dateStr", async (req, res) => {
 // Serving setup 
 async function init() {
   if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+    const { createServer: createViteServer } = await import("vite");
     viteInstance = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
