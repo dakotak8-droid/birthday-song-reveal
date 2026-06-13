@@ -846,6 +846,7 @@ export default function App() {
     setIsExporting(false);
     setExportError(null);
     setAlbumArtUrl(null);
+    setIsLoadingAlbumArt(false);
     setIsVintagePortrait(false);
     setVintagePortraitCaption("");
     setHasAlbumArtError(false);
