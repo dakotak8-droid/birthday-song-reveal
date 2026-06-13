@@ -621,23 +621,24 @@ app.post("/api/reveal", async (req, res) => {
   } catch (error: any) {
     console.error("Reveal API Error:", error);
     
-    const errMessage = (error.message || "").toLowerCase();
-    const isRateLimit = errMessage.includes("429") || error.status === 429 || error.statusCode === 429 || errMessage.includes("rate limit") || errMessage.includes("quota");
-    
-    if (isRateLimit) {
-      console.log(`[DEBUG] Detected 429/Rate Limit error. Automatically falling back to local archive.`);
-      const fallback = getFallbackNostalgia(birthDate);
-      return res.json(fallback);
+    // Check if the requested year is in the 1930s (which has exact local records)
+    if (birthDate) {
+      const parts = birthDate.split("-");
+      const yStr = parts[0];
+      const y = parseInt(yStr, 10);
+      if (!isNaN(y) && y < 1940) {
+        try {
+          const fallback = getFallbackNostalgia(birthDate);
+          return res.json(fallback);
+        } catch (fbError) {
+          console.error("1930s Fallback Error:", fbError);
+        }
+      }
     }
 
-    // Fallback gracefully instead of throwing a 500 status on legitimate queries
-    try {
-      console.log(`[DEBUG] SOURCE: static-fallback (Error caught in /api/reveal, falling back)`);
-      const fallback = getFallbackNostalgia(birthDate);
-      res.json(fallback);
-    } catch (fallbackError) {
-      res.status(500).json({ error: "Failed to gather nostalgic memories. Please try again." });
-    }
+    // For any year >= 1940, do NOT show a fake song result. Return friendly error message.
+    console.log(`[DEBUG] Returning archive busy 429 rate limit message to client.`);
+    return res.status(429).json({ error: "The music archive is busy right now. Please try again in a minute." });
   }
 });
 
@@ -1286,105 +1287,6 @@ function getFallbackNostalgia(date: string) {
     };
   }
   
-  const parts = date.split("-");
-  const userYear = parseInt(parts[0], 10);
-  const userMonth = parseInt(parts[1], 10);
-  const userDay = parseInt(parts[2], 10);
-
-  let celebrityName = "No iconic birthday match discovered";
-  let celebrityDescription = "A distinctive day in history, waiting for my unique story to unfold.";
-  let celebrityBirthMonth = 0;
-  let celebrityBirthDay = 0;
-
-  if (userMonth === 10 && userDay === 25) {
-    celebrityName = "Katy Perry";
-    celebrityDescription = "Katy Perry brought chart-topping pop brilliance and dazzling stardom to the world.";
-    celebrityBirthMonth = 10;
-    celebrityBirthDay = 25;
-  } else if (userMonth === 10 && userDay === 28) {
-    celebrityName = "Julia Roberts";
-    celebrityDescription = "Julia Roberts defined a generation of cinema with magnetic charm and brilliant screen presence.";
-    celebrityBirthMonth = 10;
-    celebrityBirthDay = 28;
-  } else if (userMonth === 11 && userDay === 11) {
-    celebrityName = "Leonardo DiCaprio";
-    celebrityDescription = "Leonardo DiCaprio captured hearts and pushed cinema boundaries with legendary versatility.";
-    celebrityBirthMonth = 11;
-    celebrityBirthDay = 11;
-  } else if (userMonth === 11 && userDay === 22) {
-    celebrityName = "Scarlett Johansson";
-    celebrityDescription = "Scarlett Johansson commanded the screen with modern grace and unparalleled range.";
-    celebrityBirthMonth = 11;
-    celebrityBirthDay = 22;
-  } else if (userMonth === 9 && userDay === 1) {
-    celebrityName = "Zendaya";
-    celebrityDescription = "Zendaya broke boundaries in style and television, pioneering representation for her generation.";
-    celebrityBirthMonth = 9;
-    celebrityBirthDay = 1;
-  } else if (userMonth === 12 && userDay === 18) {
-    celebrityName = "Billie Eilish";
-    celebrityDescription = "Billie Eilish revolutionized alternative pop with haunting vocals and direct emotional honesty.";
-    celebrityBirthMonth = 12;
-    celebrityBirthDay = 18;
-  }
-
-  // Determine the decade
-  let decadeStr = "2020s";
-  if (chartYear < 1950) {
-    decadeStr = "1940s";
-  } else if (chartYear < 1960) {
-    decadeStr = "1950s";
-  } else if (chartYear < 1970) {
-    decadeStr = "1960s";
-  } else if (chartYear < 1980) {
-    decadeStr = "1970s";
-  } else if (chartYear < 1990) {
-    decadeStr = "1980s";
-  } else if (chartYear < 2000) {
-    decadeStr = "1990s";
-  } else if (chartYear < 2010) {
-    decadeStr = "2000s";
-  } else if (chartYear < 2020) {
-    decadeStr = "2010s";
-  } else {
-    decadeStr = "2020s";
-  }
-
-  const decadeSongs = FALLBACK_SONGS_BY_DECADE[decadeStr] || FALLBACK_SONGS_BY_DECADE["2020s"];
-  
-  // Deterministic seed utilizing year + month + day
-  const seed = userYear + userMonth + userDay;
-  const songIndex = seed % decadeSongs.length;
-  const selectedSong = decadeSongs[songIndex];
-
-  const baseResult = {
-    songTitle: selectedSong.songTitle,
-    artist: selectedSong.artist,
-    releaseYear: chartYear,
-    genre: selectedSong.genre,
-    billboardRank: "Representative Era Hit",
-    albumCoverDescription: selectedSong.albumCoverDescription,
-    spotifyUrl: `https://open.spotify.com/search/${encodeURIComponent(selectedSong.spotifyQuery)}`,
-    emotionalSentence: selectedSong.emotionalSentence,
-    movieTitle: selectedSong.movieTitle,
-    movieDescription: selectedSong.movieDescription,
-    tvShowTitle: selectedSong.tvShowTitle,
-    tvShowDescription: selectedSong.tvShowDescription,
-    culturalSnapshot: selectedSong.culturalSnapshot,
-    isFallback: true,
-    source: "fallback"
-  };
-
-  return {
-    ...baseResult,
-    celebrityName,
-    celebrityDescription,
-    celebrityBirthMonth,
-    celebrityBirthDay,
-    userBirthMonth: userMonth,
-    userBirthDay: userDay,
-    userBirthdayFormatted,
-    matchedChartWeek
-  };
+  throw new Error("The music archive is busy right now. Please try again in a minute.");
 }
 
