@@ -454,6 +454,9 @@ async function getNostalgiaData(birthDate: string): Promise<any> {
 
   // Check if Gemini API Key is available
   const apiKey = process.env.GEMINI_API_KEY;
+  console.log(`[DEBUG] process.env.GEMINI_API_KEY exists: ${!!apiKey}`);
+  console.log(`[DEBUG] GEMINI_API_KEY length: ${apiKey ? apiKey.length : 0}`);
+
   if (!apiKey) {
     console.warn("GEMINI_API_KEY environment variable is not set. Using rich fallback data.");
     const data = getFallbackNostalgia(birthDate) as any;
@@ -462,14 +465,21 @@ async function getNostalgiaData(birthDate: string): Promise<any> {
     return data;
   }
 
-  const ai = new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        "User-Agent": "aistudio-build",
+  let ai;
+  try {
+    ai = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build",
+        },
       },
-    },
-  });
+    });
+    console.log(`[DEBUG] Gemini SDK initialization succeeded`);
+  } catch (initErr: any) {
+    console.error(`[DEBUG] Gemini SDK initialization failed:`, initErr);
+    throw initErr;
+  }
 
   const userMonth = m;
   const userDay = d;
@@ -483,6 +493,7 @@ async function getNostalgiaData(birthDate: string): Promise<any> {
   If you cannot find/verify a celebrity born on exactly month ${userMonth} and day ${userDay}, return "No iconic birthday match discovered" for celebrityName, and "A distinctive day in history, waiting for my unique story to unfold." for celebrityDescription, with celebrityBirthMonth: 0, celebrityBirthDay: 0. 
   Do NOT select any celebrity born on a different month or day. No adjacent or close dates allowed.`;
 
+  console.log(`[DEBUG] Executing Gemini API request for date: ${birthDate}...`);
    const response = await ai.models.generateContent({
     model: "gemini-3.5-flash",
     contents: prompt,
@@ -542,6 +553,7 @@ async function getNostalgiaData(birthDate: string): Promise<any> {
     throw new Error("No response text from Gemini API.");
   }
 
+  console.log(`[DEBUG] Gemini request executed successfully and returned text payload.`);
   const nostalgiaData = JSON.parse(text);
   nostalgiaData.source = "gemini";
   console.log(`[DEBUG] SOURCE: gemini`);
@@ -610,6 +622,7 @@ app.post("/api/reveal", async (req, res) => {
     console.error("Reveal API Error:", error);
     // Fallback gracefully instead of throwing a 500 status on legitimate queries
     try {
+      console.log(`[DEBUG] SOURCE: static-fallback (Error caught in /api/reveal, falling back)`);
       const fallback = getFallbackNostalgia(birthDate);
       res.json(fallback);
     } catch (fallbackError) {
