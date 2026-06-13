@@ -1561,15 +1561,7 @@ export default function App() {
     }
   };
 
-  // Sample static data for right side before reveal
-  const sampleData = {
-    date: "October 25, 1995",
-    songTitle: "Fantasy",
-    artist: "Mariah Carey",
-    sentence: "The radio was playing this when my story began.",
-    genre: "Pop / R&B",
-    year: "1995"
-  };
+
 
   const activeTheme = result ? getGenreTheme(result.genre) : getGenreTheme("pop");
   const activeDecadeMood = getDecadeMood(result ? result.releaseYear : undefined);
@@ -1952,42 +1944,50 @@ export default function App() {
                   </div>
 
                   {/* Micro timestamp label on vinyl card overlay */}
-                  <div className="absolute bottom-4 left-4 glass px-3 py-1 rounded-full text-[10px] uppercase tracking-tighter text-white">
-                    {result ? `Revealed: ${result.userBirthdayFormatted || "October 25, 1995"}` : "Previewing: Oct 25, 1995"}
+                  {result && (
+                    <div className="absolute bottom-4 left-4 glass px-3 py-1 rounded-full text-[10px] uppercase tracking-tighter text-white">
+                      Revealed: {result.userBirthdayFormatted}
+                    </div>
+                  )}
+                </div>
+
+                {result ? (
+                  <>
+                    {/* Standard Song Meta */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-start">
+                        <h2 className="text-2xl font-bold text-white tracking-tight leading-tight">{result.songTitle}</h2>
+                        <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[9px] font-bold border border-amber-500/30 uppercase tracking-wider">
+                          #1 Hit
+                        </span>
+                      </div>
+                      <p className="text-base text-indigo-300 font-mono">
+                        {result.artist}
+                      </p>
+                    </div>
+
+                    {/* Atmospheric small sentence */}
+                    <div className="pt-3.5 border-t border-white/5">
+                      <p className="font-serif italic text-slate-400 text-xs md:text-sm leading-relaxed">
+                        “{result.emotionalSentence || "The radio was playing this melody when my story began.”"}
+                      </p>
+                    </div>
+
+                    {/* Simulated Audio progress wave */}
+                    <div className="flex space-x-2 pt-1 items-center">
+                       <div className="h-1 flex-1 bg-white/10 rounded-full overflow-hidden">
+                         <div className="h-full w-1/3 bg-indigo-500"></div>
+                       </div>
+                       <span className="text-[9px] font-mono text-slate-500">0:44 / 3:28</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-6">
+                    <p className="text-sm font-medium text-slate-300 tracking-wide font-sans">
+                      Choose a date and reveal your soundtrack
+                    </p>
                   </div>
-                </div>
-
-                {/* Standard Sample Song Meta */}
-                <div className="space-y-1">
-                  <div className="flex justify-between items-start">
-                    <h2 className="text-2xl font-bold text-white tracking-tight leading-tight">{result ? result.songTitle : sampleData.songTitle}</h2>
-                    <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[9px] font-bold border border-amber-500/30 uppercase tracking-wider">
-                      #1 Hit
-                    </span>
-                  </div>
-                  <p className="text-base text-indigo-300 font-mono">
-                    {result ? result.artist : sampleData.artist}
-                  </p>
-                </div>
-
-                {/* Atmospheric small sentence */}
-                <div className="pt-3.5 border-t border-white/5">
-                  <p className="font-serif italic text-slate-400 text-xs md:text-sm leading-relaxed">
-                    {result ? (
-                      `“${result.emotionalSentence || "The radio was playing this melody when my story began.”"}`
-                    ) : (
-                      `“${sampleData.sentence} This track ruled American radio while I was entering the world.”`
-                    )}
-                  </p>
-                </div>
-
-                {/* Simulated Audio progress wave */}
-                <div className="flex space-x-2 pt-1 items-center">
-                   <div className="h-1 flex-1 bg-white/10 rounded-full overflow-hidden">
-                     <div className="h-full w-1/3 bg-indigo-500"></div>
-                   </div>
-                   <span className="text-[9px] font-mono text-slate-500">0:44 / 3:28</span>
-                </div>
+                )}
               </div>
             </div>
           </div>
